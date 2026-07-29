@@ -233,6 +233,11 @@ def open_trade(symbol: str, direction: str, qty: float,
 def close_trade(symbol: str, timeout: float = 10.0) -> dict:
     """미체결 주문 전부 취소 + 남은 포지션 시장가 청산(reduceOnly)."""
     out: dict = {"env": env_label(), "symbol": symbol}
+    try:                      # 진입이 스킵된 심볼이면 청산도 할 게 없다
+        filters(symbol, timeout)
+    except RuntimeError as e:
+        out["note"] = f"거래 대상 아님 — 청산 스킵 ({e})"
+        return out
     try:
         _signed("DELETE", "/fapi/v1/allOpenOrders", {"symbol": symbol},
                 timeout=timeout)
