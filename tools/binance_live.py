@@ -106,7 +106,11 @@ def filters(symbol: str, timeout: float = 10.0) -> dict:
     entry = next((s for s in info.get("symbols") or []
                   if s.get("symbol") == symbol), None)
     if entry is None:
-        raise RuntimeError(f"{symbol}: 심볼 정보 없음")
+        # 테스트넷은 실서버(851)보다 심볼이 적다(730). 신규 상장·토큰화주식류가
+        # 빠지므로 페이퍼 신호가 테스트넷엔 없을 수 있다 — 실서버에선 정상.
+        where = "테스트넷에 없는 심볼(실서버엔 존재 가능)" if not is_live() \
+            else "거래소에 없는 심볼"
+        raise RuntimeError(f"{symbol}: {where} — 실주문 스킵(페이퍼는 계속)")
     out = {"stepSize": "1", "tickSize": "0.01", "minNotional": 5.0}
     for f in entry.get("filters", []):
         if f["filterType"] == "LOT_SIZE":
