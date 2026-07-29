@@ -41,7 +41,17 @@ def base_url() -> str:
 
 
 def max_notional() -> float:
-    return float(os.environ.get("DANTA_MAX_NOTIONAL", "200"))
+    """주문당 명목가 상한.
+
+    실서버 기본 $200 = 실탄 초기 소액 원칙(명시적으로 올려야 커진다).
+    테스트넷 기본 $1,000 = 가짜 돈이라 손실 방어 목적이 없고, 오히려 전략이
+    자연스럽게 내는 사이즈(자본 $500 × 레버 상한 2배)를 그대로 태워야
+    파이프라인이 실제로 검증된다. 둘 다 DANTA_MAX_NOTIONAL로 덮어쓸 수 있다.
+    """
+    env = os.environ.get("DANTA_MAX_NOTIONAL")
+    if env:
+        return float(env)
+    return 200.0 if is_live() else 1000.0
 
 
 def env_label() -> str:
