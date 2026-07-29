@@ -1,0 +1,252 @@
+{
+  "folds": [
+    {
+      "fold": 1,
+      "is": [
+        0,
+        1000
+      ],
+      "oos": [
+        1000,
+        1500
+      ],
+      "chosen": "drop_losers rr=2.5 sm=1.5 ms=60",
+      "is_avgR": 0.311,
+      "oos_n": 70,
+      "oos_winrate": 0.371,
+      "oos_avgR": 0.011,
+      "oos_pf": 1.03,
+      "oos_pnl": 78.5
+    },
+    {
+      "fold": 2,
+      "is": [
+        500,
+        1500
+      ],
+      "oos": [
+        1500,
+        2000
+      ],
+      "chosen": "reversal_only rr=2.0 sm=1.0 ms=70",
+      "is_avgR": 0.326,
+      "oos_n": 53,
+      "oos_winrate": 0.472,
+      "oos_avgR": 0.132,
+      "oos_pf": 1.46,
+      "oos_pnl": 698.46
+    },
+    {
+      "fold": 3,
+      "is": [
+        1000,
+        2000
+      ],
+      "oos": [
+        2000,
+        2500
+      ],
+      "chosen": "drop_losers rr=2.0 sm=1.0 ms=70",
+      "is_avgR": 0.013,
+      "oos_n": 74,
+      "oos_winrate": 0.338,
+      "oos_avgR": -0.103,
+      "oos_pf": 0.64,
+      "oos_pnl": -765.73
+    },
+    {
+      "fold": 4,
+      "is": [
+        1500,
+        2500
+      ],
+      "oos": [
+        2500,
+        3000
+      ],
+      "chosen": "drop_losers rr=2.0 sm=1.0 ms=70",
+      "is_avgR": 0.124,
+      "oos_n": 79,
+      "oos_winrate": 0.354,
+      "oos_avgR": -0.039,
+      "oos_pf": 0.84,
+      "oos_pnl": -310.37
+    },
+    {
+      "fold": 5,
+      "is": [
+        2000,
+        3000
+      ],
+      "oos": [
+        3000,
+        3500
+      ],
+      "chosen": "drop_losers rr=2.5 sm=1.5 ms=60",
+      "is_avgR": 0.08,
+      "oos_n": 79,
+      "oos_winrate": 0.266,
+      "oos_avgR": -0.104,
+      "oos_pf": 0.55,
+      "oos_pnl": -819.75
+    },
+    {
+      "fold": 6,
+      "is": [
+        2500,
+        3500
+      ],
+      "oos": [
+        3500,
+        4000
+      ],
+      "chosen": "drop_losers rr=2.5 sm=1.5 ms=60",
+      "is_avgR": -0.035,
+      "oos_n": 56,
+      "oos_winrate": 0.464,
+      "oos_avgR": 0.172,
+      "oos_pf": 1.86,
+      "oos_pnl": 960.6
+    },
+    {
+      "fold": 7,
+      "is": [
+        3000,
+        4000
+      ],
+      "oos": [
+        4000,
+        4500
+      ],
+      "chosen": "reversal_only rr=2.0 sm=1.0 ms=60",
+      "is_avgR": 0.173,
+      "oos_n": 65,
+      "oos_winrate": 0.462,
+      "oos_avgR": 0.061,
+      "oos_pf": 1.24,
+      "oos_pnl": 397.02
+    },
+    {
+      "fold": 8,
+      "is": [
+        3500,
+        4500
+      ],
+      "oos": [
+        4500,
+        5000
+      ],
+      "chosen": "drop_losers rr=2.5 sm=1.5 ms=70",
+      "is_avgR": 0.166,
+      "oos_n": 70,
+      "oos_winrate": 0.243,
+      "oos_avgR": -0.165,
+      "oos_pf": 0.5,
+      "oos_pnl": -1153.32
+    }
+  ],
+  "wfa": {
+    "n_trades": 546,
+    "avg_R": -0.017,
+    "win_rate": 0.363,
+    "profit_factor": 0.94,
+    "total_pnl": -914.59,
+    "by_setup": {
+      "PULLBACK": {
+        "n": 110,
+        "wins": 45,
+        "pnl": 1009.98,
+        "win_rate": 0.409,
+        "avg_R": 0.092
+      },
+      "REVERSAL": {
+        "n": 246,
+        "wins": 101,
+        "pnl": 742.41,
+        "win_rate": 0.411,
+        "avg_R": 0.03
+      },
+      "MOMENTUM": {
+        "n": 38,
+        "wins": 12,
+        "pnl": -576.08,
+        "win_rate": 0.316,
+        "avg_R": -0.152
+      },
+      "TREND_CONTINUATION": {
+        "n": 77,
+        "wins": 17,
+        "pnl": -911.15,
+        "win_rate": 0.221,
+        "avg_R": -0.118
+      },
+      "BREAKOUT": {
+        "n": 75,
+        "wins": 23,
+        "pnl": -1179.75,
+        "win_rate": 0.307,
+        "avg_R": -0.157
+      }
+    }
+  },
+  "fixed": {
+    "n_trades": 537,
+    "avg_R": 0.043,
+    "win_rate": 0.408,
+    "profit_factor": 1.16,
+    "total_pnl": 2323.34,
+    "by_setup": {
+      "REVERSAL": {
+        "n": 537,
+        "wins": 219,
+        "pnl": 2323.34,
+        "win_rate": 0.408,
+        "avg_R": 0.043
+      }
+    }
+  },
+  "all": {
+    "n_trades": 681,
+    "avg_R": 0.019,
+    "win_rate": 0.395,
+    "profit_factor": 1.08,
+    "total_pnl": 1299.46,
+    "by_setup": {
+      "REVERSAL": {
+        "n": 176,
+        "wins": 82,
+        "pnl": 1645.06,
+        "win_rate": 0.466,
+        "avg_R": 0.093
+      },
+      "TREND_CONTINUATION": {
+        "n": 188,
+        "wins": 64,
+        "pnl": 148.4,
+        "win_rate": 0.34,
+        "avg_R": 0.008
+      },
+      "MOMENTUM": {
+        "n": 23,
+        "wins": 8,
+        "pnl": -3.55,
+        "win_rate": 0.348,
+        "avg_R": -0.002
+      },
+      "PULLBACK": {
+        "n": 137,
+        "wins": 50,
+        "pnl": -221.88,
+        "win_rate": 0.365,
+        "avg_R": -0.016
+      },
+      "BREAKOUT": {
+        "n": 157,
+        "wins": 65,
+        "pnl": -268.57,
+        "win_rate": 0.414,
+        "avg_R": -0.017
+      }
+    }
+  }
+}

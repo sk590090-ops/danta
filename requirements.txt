@@ -1,0 +1,7 @@
+# 필수 (핵심 파이프라인)
+pandas>=2.0
+numpy>=1.24
+
+# 선택 (있으면 자동 사용, 없어도 동작)
+PyYAML>=6.0        # config.yaml 로드 (없으면 코드 기본값)
+ccxt>=4.0          # 실거래소 OHLCV (data_source=ccxt 일 때만)

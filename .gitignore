@@ -1,0 +1,19 @@
+# 비밀정보 (절대 커밋 금지)
+.env
+*.key
+*secret*
+
+# 실행 상태 파일 (계좌·포지션 — 개인 데이터)
+futures_paper.json
+paper_state.json
+radar_state.json
+radar_track.json
+scan_result.json
+dashboard_danta.html
+
+# 캐시·로그·데이터
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+logs/

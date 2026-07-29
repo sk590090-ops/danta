@@ -1,0 +1,12 @@
+# 튜닝 결과 (tools/tune.py 생성) — config.yaml에 반영하거나 --config로 사용
+symbols: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+timeframe: "1h"
+signal:
+  min_score_approve: 60
+  disabled_setups: ['MOMENTUM', 'BREAKOUT', 'PULLBACK', 'TREND_CONTINUATION']
+planner:
+  rr_target: 2.0
+  atr_stop_mult: 1.0
+decision:
+  require_trend_alignment: False
+  min_rr: 1.5

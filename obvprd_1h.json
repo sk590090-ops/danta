@@ -1,0 +1,348 @@
+{
+  "folds": [
+    {
+      "fold": 1,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.133,
+      "wfa": {
+        "n_trades": 2,
+        "avg_R": 0.141,
+        "win_rate": 0.5,
+        "profit_factor": 2.1,
+        "total_pnl": 28.2,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 2,
+            "wins": 1,
+            "pnl": 28.2,
+            "win_rate": 0.5,
+            "avg_R": 0.141
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 2,
+        "avg_R": 0.141,
+        "win_rate": 0.5,
+        "profit_factor": 2.1,
+        "total_pnl": 28.2,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 2,
+            "wins": 1,
+            "pnl": 28.2,
+            "win_rate": 0.5,
+            "avg_R": 0.141
+          }
+        }
+      }
+    },
+    {
+      "fold": 2,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.141,
+      "wfa": {
+        "n_trades": 5,
+        "avg_R": 0.072,
+        "win_rate": 0.4,
+        "profit_factor": 1.38,
+        "total_pnl": 35.79,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 5,
+            "wins": 2,
+            "pnl": 35.79,
+            "win_rate": 0.4,
+            "avg_R": 0.072
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 5,
+        "avg_R": 0.072,
+        "win_rate": 0.4,
+        "profit_factor": 1.38,
+        "total_pnl": 35.79,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 5,
+            "wins": 2,
+            "pnl": 35.79,
+            "win_rate": 0.4,
+            "avg_R": 0.072
+          }
+        }
+      }
+    },
+    {
+      "fold": 3,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.15,
+      "wfa": {
+        "n_trades": 1,
+        "avg_R": -0.27,
+        "win_rate": 0.0,
+        "profit_factor": 0.0,
+        "total_pnl": -27.03,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 1,
+            "wins": 0,
+            "pnl": -27.03,
+            "win_rate": 0.0,
+            "avg_R": -0.27
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 1,
+        "avg_R": -0.27,
+        "win_rate": 0.0,
+        "profit_factor": 0.0,
+        "total_pnl": -27.03,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 1,
+            "wins": 0,
+            "pnl": -27.03,
+            "win_rate": 0.0,
+            "avg_R": -0.27
+          }
+        }
+      }
+    },
+    {
+      "fold": 4,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": -0.065,
+      "wfa": {
+        "n_trades": 7,
+        "avg_R": -0.079,
+        "win_rate": 0.286,
+        "profit_factor": 0.55,
+        "total_pnl": -55.41,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 7,
+            "wins": 2,
+            "pnl": -55.41,
+            "win_rate": 0.286,
+            "avg_R": -0.079
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 7,
+        "avg_R": -0.079,
+        "win_rate": 0.286,
+        "profit_factor": 0.55,
+        "total_pnl": -55.41,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 7,
+            "wins": 2,
+            "pnl": -55.41,
+            "win_rate": 0.286,
+            "avg_R": -0.079
+          }
+        }
+      }
+    },
+    {
+      "fold": 5,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": -0.103,
+      "wfa": {
+        "n_trades": 2,
+        "avg_R": 0.11,
+        "win_rate": 0.5,
+        "profit_factor": 1.96,
+        "total_pnl": 21.92,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 2,
+            "wins": 1,
+            "pnl": 21.92,
+            "win_rate": 0.5,
+            "avg_R": 0.11
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 2,
+        "avg_R": 0.11,
+        "win_rate": 0.5,
+        "profit_factor": 1.96,
+        "total_pnl": 21.92,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 2,
+            "wins": 1,
+            "pnl": 21.92,
+            "win_rate": 0.5,
+            "avg_R": 0.11
+          }
+        }
+      }
+    },
+    {
+      "fold": 6,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.17,
+      "wfa": {
+        "n_trades": 0,
+        "avg_R": 0.0,
+        "win_rate": 0.0,
+        "profit_factor": 0.0,
+        "total_pnl": 0.0,
+        "by_setup": {}
+      },
+      "fix": {
+        "n_trades": 0,
+        "avg_R": 0.0,
+        "win_rate": 0.0,
+        "profit_factor": 0.0,
+        "total_pnl": 0.0,
+        "by_setup": {}
+      }
+    },
+    {
+      "fold": 7,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.446,
+      "wfa": {
+        "n_trades": 5,
+        "avg_R": 0.124,
+        "win_rate": 0.4,
+        "profit_factor": 2.12,
+        "total_pnl": 61.78,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 5,
+            "wins": 2,
+            "pnl": 61.78,
+            "win_rate": 0.4,
+            "avg_R": 0.124
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 5,
+        "avg_R": 0.124,
+        "win_rate": 0.4,
+        "profit_factor": 2.12,
+        "total_pnl": 61.78,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 5,
+            "wins": 2,
+            "pnl": 61.78,
+            "win_rate": 0.4,
+            "avg_R": 0.124
+          }
+        }
+      }
+    },
+    {
+      "fold": 8,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.124,
+      "wfa": {
+        "n_trades": 9,
+        "avg_R": -0.116,
+        "win_rate": 0.222,
+        "profit_factor": 0.35,
+        "total_pnl": -104.15,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 9,
+            "wins": 2,
+            "pnl": -104.15,
+            "win_rate": 0.222,
+            "avg_R": -0.116
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 9,
+        "avg_R": -0.116,
+        "win_rate": 0.222,
+        "profit_factor": 0.35,
+        "total_pnl": -104.15,
+        "by_setup": {
+          "OBV_PRD": {
+            "n": 9,
+            "wins": 2,
+            "pnl": -104.15,
+            "win_rate": 0.222,
+            "avg_R": -0.116
+          }
+        }
+      }
+    }
+  ],
+  "wfa": {
+    "n_trades": 31,
+    "avg_R": -0.013,
+    "win_rate": 0.323,
+    "profit_factor": 0.92,
+    "total_pnl": -38.9,
+    "by_setup": {
+      "OBV_PRD": {
+        "n": 31,
+        "wins": 10,
+        "pnl": -38.9,
+        "win_rate": 0.323,
+        "avg_R": -0.013
+      }
+    }
+  },
+  "fixed": {
+    "n_trades": 31,
+    "avg_R": -0.013,
+    "win_rate": 0.323,
+    "profit_factor": 0.92,
+    "total_pnl": -38.9,
+    "by_setup": {
+      "OBV_PRD": {
+        "n": 31,
+        "wins": 10,
+        "pnl": -38.9,
+        "win_rate": 0.323,
+        "avg_R": -0.013
+      }
+    }
+  }
+}

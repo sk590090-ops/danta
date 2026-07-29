@@ -1,0 +1,24 @@
+# OBV_DIV 페이퍼 봇 설정 (2026-07-23 워크포워드 통과 → 투입)
+# 파라미터 = 1h WFA 8폴드 최다 선택값(rr2.5 6/8, sm1.0, ms60). 튜닝 금지.
+symbols: [BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT]
+timeframe: "1h"
+equity: 10000
+data_source: ccxt
+poll_seconds: 3600
+
+ccxt:
+  exchange: binance
+  market_type: spot
+  limit: 600            # OBV/MA200 워밍업 충분
+
+signal:
+  min_score_approve: 60
+  disabled_setups: [MOMENTUM, BREAKOUT, PULLBACK, TREND_CONTINUATION,
+                    REVERSAL, CONVERGENCE, VWAP]   # OBV_DIV만
+
+planner:
+  rr_target: 2.5
+  atr_stop_mult: 1.0
+
+decision:
+  min_rr: 1.5

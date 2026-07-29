@@ -1,0 +1,52 @@
+# pattern_trader 설정 (없으면 코드 기본값 사용)
+symbols: [BTCUSDT, ETHUSDT, SOLUSDT]
+timeframe: "1h"
+equity: 10000
+data_source: synthetic        # synthetic | csv | ccxt
+data_dir: data
+poll_seconds: 60
+
+ccxt:                          # data_source=ccxt 일 때만 사용
+  exchange: binance           # binance | bybit | okx | upbit ...
+  market_type: spot           # spot | swap(무기한선물)
+  limit: 500                  # 확보할 총 봉수(페이지네이션)
+  max_per_call: 1000
+  retries: 3
+  retry_wait: 1.5
+
+risk:
+  risk_per_trade: 0.01        # 1회 거래당 위험(계좌 대비 1%)
+  max_position_pct: 0.30      # 단일 포지션 최대 비중
+  max_total_exposure: 1.0     # 총 노출 한도(계좌 배수)
+  max_drawdown: 0.20          # 허용 최대 낙폭
+  max_loss_per_trade: 0.02    # 1회 최대 손실 한도
+  atr_vol_min: 0.002          # 최소 변동성(ATR/price)
+  atr_vol_max: 0.08           # 최대 변동성
+
+signal:
+  ma_windows: [5, 20, 100, 200]
+  fast_ma: 5
+  slow_ma: 20
+  trend_ma: 200
+  atr_period: 14
+  swing_left: 3
+  swing_right: 3
+  big_body_atr: 1.2           # 큰 양/음선 기준(ATR 배수)
+  doji_body_ratio: 0.1
+  pin_wick_ratio: 2.0         # 핀바(목봉선) 꼬리/몸통 비율
+  breakout_lookback: 20
+  min_score_watch: 45         # 관찰 최소 스코어
+  min_score_approve: 60       # 승인 최소 스코어 [튜닝: 65→60]
+  # [튜닝] 3개월(2000봉)·5심볼 백테스트에서 순손실이던 셋업 비활성화.
+  # REVERSAL만 잔존(PF 1.25, out-of-sample 전/후반 모두 수익).
+  # CONVERGENCE: 3TF 검증서 발동 3~5건뿐(표본부족·PF≤1.06) → 비활성 (2026-07-21)
+  disabled_setups: [MOMENTUM, BREAKOUT, PULLBACK, TREND_CONTINUATION, CONVERGENCE]
+
+planner:
+  rr_target: 2.0              # 목표 손익비(R 배수) [튜닝 최적]
+  atr_stop_mult: 1.0          # ATR 기반 손절 최소폭 [튜닝 최적]
+  stop_buffer_atr: 0.3
+
+decision:
+  require_trend_alignment: false   # true면 추세 역행 진입 거부
+  min_rr: 1.5                      # 최소 손익비

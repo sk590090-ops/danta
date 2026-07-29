@@ -1,0 +1,130 @@
+{
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "BNBUSDT",
+    "XRPUSDT"
+  ],
+  "timeframe": "1h",
+  "limit": 800,
+  "exchange": "binance",
+  "baseline": {
+    "n_trades": 135,
+    "avg_R": -0.164,
+    "win_rate": 0.237,
+    "profit_factor": 0.42,
+    "total_pnl": -2210.26,
+    "by_setup": {
+      "REVERSAL": {
+        "n": 35,
+        "wins": 9,
+        "pnl": -156.36,
+        "win_rate": 0.257,
+        "avg_R": -0.045
+      },
+      "TREND_CONTINUATION": {
+        "n": 33,
+        "wins": 10,
+        "pnl": -421.67,
+        "win_rate": 0.303,
+        "avg_R": -0.128
+      },
+      "MOMENTUM": {
+        "n": 11,
+        "wins": 1,
+        "pnl": -457.72,
+        "win_rate": 0.091,
+        "avg_R": -0.416
+      },
+      "PULLBACK": {
+        "n": 33,
+        "wins": 6,
+        "pnl": -525.92,
+        "win_rate": 0.182,
+        "avg_R": -0.159
+      },
+      "BREAKOUT": {
+        "n": 23,
+        "wins": 6,
+        "pnl": -648.59,
+        "win_rate": 0.261,
+        "avg_R": -0.282
+      }
+    }
+  },
+  "final": {
+    "n_trades": 107,
+    "avg_R": -0.026,
+    "win_rate": 0.383,
+    "profit_factor": 0.9,
+    "total_pnl": -276.87,
+    "by_setup": {
+      "REVERSAL": {
+        "n": 107,
+        "wins": 41,
+        "pnl": -276.87,
+        "win_rate": 0.383,
+        "avg_R": -0.026
+      }
+    }
+  },
+  "applied": {
+    "planner.rr_target": 2.0,
+    "planner.atr_stop_mult": 1.0,
+    "signal.min_score_approve": 60,
+    "decision.require_trend_alignment": false,
+    "signal.disabled_setups": [
+      "MOMENTUM",
+      "BREAKOUT",
+      "PULLBACK",
+      "TREND_CONTINUATION"
+    ]
+  },
+  "stage1_top3": [
+    [
+      {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.0
+      },
+      -0.164
+    ],
+    [
+      {
+        "planner.rr_target": 3.0,
+        "planner.atr_stop_mult": 1.0
+      },
+      -0.177
+    ],
+    [
+      {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.5
+      },
+      -0.178
+    ]
+  ],
+  "stage2_top3": [
+    [
+      {
+        "signal.min_score_approve": 60,
+        "decision.require_trend_alignment": false
+      },
+      -0.102
+    ],
+    [
+      {
+        "signal.min_score_approve": 60,
+        "decision.require_trend_alignment": true
+      },
+      -0.104
+    ],
+    [
+      {
+        "signal.min_score_approve": 65,
+        "decision.require_trend_alignment": true
+      },
+      -0.104
+    ]
+  ]
+}

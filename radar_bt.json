@@ -1,0 +1,106 @@
+{
+  "n": 19031,
+  "base_rate": 0.2493,
+  "boom_pct": 8.0,
+  "flags": {
+    "ign": {
+      "n": 704,
+      "p_boom": 0.4347,
+      "lift": 1.74
+    },
+    "fuel": {
+      "n": 521,
+      "p_boom": 0.2802,
+      "lift": 1.12
+    },
+    "sq": {
+      "n": 3174,
+      "p_boom": 0.133,
+      "lift": 0.53
+    },
+    "acc": {
+      "n": 801,
+      "p_boom": 0.1511,
+      "lift": 0.61
+    },
+    "fund": {
+      "n": 1321,
+      "p_boom": 0.6026,
+      "lift": 2.42
+    },
+    "flow": {
+      "n": 1238,
+      "p_boom": 0.1519,
+      "lift": 0.61
+    }
+  },
+  "scores": {
+    "0": {
+      "n": 12262,
+      "p_boom": 0.2474,
+      "lift": 0.99
+    },
+    "1": {
+      "n": 5827,
+      "p_boom": 0.2507,
+      "lift": 1.01
+    },
+    "2": {
+      "n": 899,
+      "p_boom": 0.2581,
+      "lift": 1.04
+    },
+    "3": {
+      "n": 38,
+      "p_boom": 0.3684,
+      "lift": 1.48
+    },
+    "4": {
+      "n": 5,
+      "p_boom": 0.6,
+      "lift": 2.41
+    },
+    "5": {
+      "n": 0,
+      "p_boom": 0.0,
+      "lift": 0.0
+    },
+    "6": {
+      "n": 0,
+      "p_boom": 0.0,
+      "lift": 0.0
+    }
+  },
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SNDKUSDT",
+    "SKHYNIXUSDT",
+    "SOXLUSDT",
+    "MUUSDT",
+    "KORUUSDT",
+    "SOLUSDT",
+    "CLUSDT",
+    "SKHYUSDT",
+    "BANKUSDT",
+    "XAUUSDT",
+    "SPCXUSDT",
+    "XAGUSDT",
+    "BZUSDT",
+    "COTIUSDT",
+    "XRPUSDT",
+    "ONUSDT",
+    "SNXXUSDT",
+    "DRAMUSDT",
+    "HYPEUSDT",
+    "ZECUSDT",
+    "EWYUSDT",
+    "AKEUSDT",
+    "SOXSUSDT",
+    "DEXEUSDT",
+    "DOGEUSDT",
+    "QQQUSDT",
+    "INTCUSDT",
+    "NVDAUSDT"
+  ]
+}
