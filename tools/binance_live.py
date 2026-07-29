@@ -111,6 +111,10 @@ def filters(symbol: str, timeout: float = 10.0) -> dict:
         where = "테스트넷에 없는 심볼(실서버엔 존재 가능)" if not is_live() \
             else "거래소에 없는 심볼"
         raise RuntimeError(f"{symbol}: {where} — 실주문 스킵(페이퍼는 계속)")
+    # 상장 예정(PENDING_TRADING) 등 거래 불가 상태 — 주문하면 빈 응답/에러.
+    st = entry.get("status", "TRADING")
+    if st != "TRADING":
+        raise RuntimeError(f"{symbol}: 거래 불가 상태({st}) — 실주문 스킵")
     out = {"stepSize": "1", "tickSize": "0.01", "minNotional": 5.0}
     for f in entry.get("filters", []):
         if f["filterType"] == "LOT_SIZE":
@@ -121,6 +125,24 @@ def filters(symbol: str, timeout: float = 10.0) -> dict:
             out["minNotional"] = float(f.get("notional", 5.0))
     _FILTER_CACHE[symbol] = out
     return out
+
+
+def _mark_price(symbol: str, timeout: float = 10.0) -> float:
+    """현재가. ticker/price가 비면 markPrice로 폴백, 둘 다 없으면 명확히 실패.
+
+    (신규 상장 직후엔 ticker가 `{}`로 오는 경우가 있다 — KeyError 대신 안내.)"""
+    for path, key in (("/fapi/v1/ticker/price", "price"),
+                      ("/fapi/v1/premiumIndex", "markPrice")):
+        try:
+            r = _public(path, {"symbol": symbol}, timeout)
+            if isinstance(r, list):
+                r = r[0] if r else {}
+            v = r.get(key)
+            if v not in (None, "", "0"):
+                return float(v)
+        except Exception:  # noqa: BLE001 — 다음 소스로 폴백
+            continue
+    raise RuntimeError(f"{symbol}: 현재가 조회 불가(거래 미개시 추정) — 실주문 스킵")
 
 
 def _round_step(v: float, step: str) -> str:
@@ -159,8 +181,7 @@ def open_trade(symbol: str, direction: str, qty: float,
     q = _round_step(qty, f["stepSize"])
     if float(q) <= 0:
         raise RuntimeError(f"{symbol}: 수량 라운딩 후 0 (qty={qty})")
-    mark = float(_public("/fapi/v1/ticker/price",
-                         {"symbol": symbol}, timeout)["price"])
+    mark = _mark_price(symbol, timeout)
     notional = float(q) * mark
     if notional > max_notional():
         raise RuntimeError(f"{symbol}: 명목 ${notional:,.0f} > 상한 "
