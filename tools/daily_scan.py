@@ -128,6 +128,8 @@ def _live(fn: str, *a) -> str | None:
         if fn == "open_trade":
             return (f"{r['env']} 실주문 체결 {r['symbol']} {r['qty']}개 "
                     f"(${r['notional']:,.0f}) + 거래소측 SL/TP 설치")
+        if fn == "update_stops":
+            return f"{r['env']} 거래소 손절 재설치 {r['symbol']} → {r['stop']:g}"
         return f"{r['env']} 실주문 정리 {r['symbol']} " + \
             (f"{r.get('closed_qty')}개 청산" if "closed_qty" in r else "잔여 없음")
     except Exception as e:
@@ -158,25 +160,39 @@ def _walk_bars(pos: dict, bars: list[tuple[int, float, float, float]]):
     """진입 후 봉들을 걸어 청산 판정. bars=[(openTime, high, low, close)].
 
     반환 (exit_price, reason, bars_held) 또는 None(계속 보유).
-    같은 봉에서 손절·목표 동시 터치면 손절 우선(보수적)."""
+    같은 봉에서 손절·목표 동시 터치면 손절 우선(보수적).
+
+    브래킷 포지션 한정 '+1R 본절 이동'(exit_study C안, 2026-07-30 채택):
+    +1R 도달 확인 후 손절을 진입가로 올린다(다음 봉부터 적용 — 같은 봉 내
+    순서를 알 수 없으므로 보수적). PF 1.86→2.32(전후반 2.40/2.23) 검증.
+    OBV_DIV 포지션은 검증 범위 밖이라 원형 유지."""
     held = pos.get("bars_held", 0)
     long = pos["direction"] == "LONG"
+    be_on = pos.get("setup") == "RADAR_BRACKET"
+    r0 = pos.get("risk0", abs(pos["entry"] - pos["stop"]))
     for ts, hi, lo, close in bars:
         if ts <= pos["entry_ts"]:
             continue
         held += 1
         if long:
             if lo <= pos["stop"]:
-                return pos["stop"], "STOP", held
+                return pos["stop"], ("BE" if pos.get("be_armed") else "STOP"), held
             if hi >= pos["target"]:
                 return pos["target"], "TARGET", held
         else:
             if hi >= pos["stop"]:
-                return pos["stop"], "STOP", held
+                return pos["stop"], ("BE" if pos.get("be_armed") else "STOP"), held
             if lo <= pos["target"]:
                 return pos["target"], "TARGET", held
         if held >= HOLD_MAX_BARS:
             return close, "TIME", held
+        # +1R 본절 이동 (봉 마감 후 적용 → 다음 봉부터 유효)
+        if be_on and not pos.get("be_armed") and r0 > 0:
+            hit_1r = (hi >= pos["entry"] + r0) if long else (lo <= pos["entry"] - r0)
+            if hit_1r:
+                pos["stop"] = pos["entry"]
+                pos["be_armed"] = True
+                pos["_be_new"] = True          # settle이 실주문 손절도 이동
     pos["bars_held"] = held
     return None
 
@@ -196,15 +212,23 @@ def settle_positions(led: dict, timeout: float) -> list[str]:
             continue
         hit = _walk_bars(pos, bars)
         if hit is None:
+            if pos.pop("_be_new", False):      # +1R 도달 → 본절 이동됨
+                msgs.append(f"🛡️ 본절 이동 {pos['symbol']} — +1R 도달, "
+                            f"손절을 진입가({pos['entry']:g})로 상향")
+                lm = _live("update_stops", pos["symbol"], pos["direction"],
+                           pos["stop"], pos["target"])
+                if lm:
+                    msgs.append("  " + lm)
             still.append(pos)
             continue
+        pos.pop("_be_new", None)
         exit_p, reason, held = hit
         sgn = 1 if pos["direction"] == "LONG" else -1
         gross = (exit_p - pos["entry"]) * sgn * pos["qty"]
         fees = (pos["entry"] + exit_p) * pos["qty"] * TAKER_FEE
         pnl = gross - fees
         led["equity"] += pnl
-        risk = abs(pos["entry"] - pos["stop"]) * pos["qty"]
+        risk = pos.get("risk0", abs(pos["entry"] - pos["stop"])) * pos["qty"]
         pos.update(exit=exit_p, reason=reason, bars_held=held,
                    pnl=round(pnl, 2), r=round(pnl / risk, 2) if risk else 0)
         led["closed"].append(pos)
@@ -251,7 +275,7 @@ def enter_positions(led: dict, cands, t0: str) -> list[str]:
             continue
         led["open"].append({
             "symbol": sym, "direction": info["signal"], "entry": entry,
-            "stop": stop, "target": target, "qty": qty,
+            "stop": stop, "target": target, "qty": qty, "risk0": dist,
             "entry_ts": int(time.time() * 1000), "opened": t0, "bars_held": 0})
         open_syms.add(sym)
         msgs.append(f"🎯 진입 {sym} {info['signal']} ${notional:,.0f} "
@@ -846,7 +870,8 @@ def check_brackets(led: dict, timeout: float) -> list[str]:
         led["open"].append({
             "symbol": b["symbol"], "direction": direction, "entry": entry,
             "stop": entry - sgn * atr, "target": entry + sgn * 2 * atr,
-            "qty": qty, "entry_ts": bar_ts, "setup": "RADAR_BRACKET",
+            "qty": qty, "risk0": atr, "entry_ts": bar_ts,
+            "setup": "RADAR_BRACKET",
             "opened": time.strftime("%Y-%m-%d %H:%M"), "bars_held": 0})
         msgs.append(f"🎯 진입 {b['symbol']} {direction} [브래킷] "
                     f"${qty*entry:,.0f} (레버 {qty*entry/led['equity']:.2f}x) · "
@@ -1031,6 +1056,18 @@ def main():
         e3 = dict(ev)   # 하방 폭발도 적중
         m3 = _resolve_event(e3, [101.0], [90.0], 25 * 3600_000)
         assert m3 and e3["boom"] and "하방" in e3["outcome"]
+        # +1R 본절 이동 (브래킷 한정): 도달→본절 청산 / OBV는 원형 유지
+        bp = {"symbol": "T", "direction": "LONG", "entry": 100.0, "stop": 95.0,
+              "target": 110.0, "entry_ts": 0, "bars_held": 0, "risk0": 5.0,
+              "setup": "RADAR_BRACKET"}
+        p5 = dict(bp)
+        assert _walk_bars(p5, [(1, 106, 99, 105)]) is None      # +1R 도달
+        assert p5["be_armed"] and p5["stop"] == 100.0 and p5["_be_new"]
+        assert _walk_bars(p5, [(2, 103, 99.5, 100.5)])[1] == "BE"  # 본절 청산
+        p6 = dict(bp)
+        assert _walk_bars(p6, [(1, 106, 94, 96)])[1] == "STOP"  # 동시봉=손절우선
+        p7 = dict(bp); p7.pop("setup")                          # OBV: 미적용
+        assert _walk_bars(p7, [(1, 106, 99, 105)]) is None and not p7.get("be_armed")
         # 브래킷 판정: 상방/하방/모호/만료/유지
         bb = {"ts": 0, "up": 105.0, "dn": 95.0}
         assert _bracket_hit(dict(bb), [(1, 106, 100)]) == ("LONG", 105.0, 1)

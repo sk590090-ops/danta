@@ -230,6 +230,32 @@ def open_trade(symbol: str, direction: str, qty: float,
             "tp_id": tp.get("algoId") or tp.get("orderId")}
 
 
+def update_stops(symbol: str, direction: str, stop: float, target: float,
+                 timeout: float = 10.0) -> dict:
+    """거래소측 SL/TP 재설치 (본절 이동 등). 기존 algo 주문 취소 후 재설치."""
+    f = filters(symbol, timeout)               # 미가용 심볼이면 여기서 예외
+    opp = "SELL" if direction == "LONG" else "BUY"
+    for path in ("/fapi/v1/algoOpenOrders", "/fapi/v1/allAlgoOpenOrders"):
+        try:
+            _signed("DELETE", path, {"symbol": symbol}, timeout=timeout)
+            break
+        except RuntimeError:
+            continue
+    sl = _signed("POST", "/fapi/v1/algoOrder", {
+        "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
+        "type": "STOP_MARKET",
+        "triggerPrice": _round_step(stop, f["tickSize"]),
+        "closePosition": "true", "workingType": "MARK_PRICE"}, timeout=timeout)
+    tp = _signed("POST", "/fapi/v1/algoOrder", {
+        "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
+        "type": "TAKE_PROFIT_MARKET",
+        "triggerPrice": _round_step(target, f["tickSize"]),
+        "closePosition": "true", "workingType": "CONTRACT_PRICE"},
+        timeout=timeout)
+    return {"env": env_label(), "symbol": symbol, "stop": stop,
+            "sl_id": sl.get("algoId"), "tp_id": tp.get("algoId")}
+
+
 def close_trade(symbol: str, timeout: float = 10.0) -> dict:
     """미체결 주문 전부 취소 + 남은 포지션 시장가 청산(reduceOnly)."""
     out: dict = {"env": env_label(), "symbol": symbol}
