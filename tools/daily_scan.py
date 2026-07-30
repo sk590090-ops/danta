@@ -419,8 +419,9 @@ def render_dashboard(led: dict, cands, t0: str, radar: list | None = None,
         f"<tr><td>{esc(t['symbol'])}</td><td class='{t['direction'].lower()}'>"
         f"{t['direction']}</td><td>{t.get('reason','')}</td>"
         f"<td class='{'up' if t.get('pnl',0)>0 else 'dn'}'>${t.get('pnl',0):+.2f}"
-        f" ({t.get('r',0):+.2f}R)</td><td>{t.get('bars_held','')}봉</td></tr>"
-        for t in reversed(closed[-10:])) or "<tr><td colspan=5 class=mut>청산 이력 없음</td></tr>"
+        f" ({t.get('r',0):+.2f}R)</td><td>{t.get('bars_held','')}봉</td>"
+        f"<td class=mut>{esc(t.get('review','대기'))}</td></tr>"
+        for t in reversed(closed[-10:])) or "<tr><td colspan=6 class=mut>청산 이력 없음</td></tr>"
     cand_rows = "".join(
         f"<tr><td>{esc(s)}</td><td>${i['vol_usd']/1e6:,.0f}M</td>"
         f"<td>{i['z']:.1f}</td><td>{i['chg']:+.1f}%</td>"
@@ -502,8 +503,8 @@ h2{{font-size:13px;color:#9fb0d6;margin:16px 0 2px}}
 <table><tr><th>점수</th><th>심볼</th><th>충족 신호</th><th>방향 힌트</th></tr>{radar_rows}</table>
 <h2>📊 전조 추적 — {hitrate} (알림 등급 전조의 24h 실제 결과)</h2>
 <table><tr><th>심볼</th><th>전조</th><th>경과</th><th>최대상방</th><th>최대하방</th><th>판정</th></tr>{track_rows}</table>
-<h2>📜 최근 청산 (최신 10건)</h2>
-<table><tr><th>심볼</th><th>방향</th><th>사유</th><th>손익</th><th>보유</th></tr>{closed_rows}</table>
+<h2>📜 최근 청산 <span class=mut style="text-transform:none;font-weight:500">— {review_summary(closed)}</span></h2>
+<table><tr><th>심볼</th><th>방향</th><th>사유</th><th>손익</th><th>보유</th><th>📚 복기 (24h 후 판정)</th></tr>{closed_rows}</table>
 <script>
 const gen={now_ms}, mins=Math.floor((Date.now()-gen)/60000);
 if(mins>75){{document.getElementById('alarm').style.display='block';
@@ -914,6 +915,83 @@ def check_brackets(led: dict, timeout: float) -> list[str]:
     return msgs
 
 
+# ── 청산 복기(post-mortem): 청산 24h 후 가격으로 '왜'를 분류·축적 ──
+# 목적: 같은 실수의 반복 감지. 단 복기는 '관찰'이며, 규칙 변경은 반드시
+# 연구 하니스(exit_study 등) 검증을 거친다 — 복기→즉흥 튜닝 금지.
+REVIEW_WAIT_H = 24
+REVIEW_BARS = 24
+
+
+def _verdict(t: dict, highs: list[float], lows: list[float]) -> str:
+    """청산 후 24h 고저로 청산의 성격 분류 (순수 로직 — selftest 대상).
+
+    STOP/BE: 휩쏘(원방향 복귀) / 정당(1R+ 추가 역행) / 중립
+    TARGET : 추세지속(1R+ 연장=이익 일부 놓침) / 완벽(직후 반전) / 중립
+    TIME   : 조기(청산 후 원방향 1R+) / 적기(청산 후 역행 1R+) / 중립"""
+    long = t["direction"] == "LONG"
+    sgn = 1 if long else -1
+    r0 = t.get("risk0") or abs(t["entry"] - t.get("stop", t["entry"])) or 1e-9
+    if not highs:
+        return "미확정"
+    fav = max(highs) if long else min(lows)     # 원방향 극값
+    adv = min(lows) if long else max(highs)     # 역방향 극값
+    reason = t["reason"]
+    if reason in ("STOP", "BE"):
+        if (fav - t["entry"]) * sgn >= 0:
+            return "휩쏘(청산 후 원방향 복귀)"
+        if (t["exit"] - adv) * sgn >= r0:
+            return "정당(청산 후 1R+ 추가 역행)"
+        return "중립(청산가 부근 횡보)"
+    if reason == "TARGET":
+        if (fav - t["exit"]) * sgn >= r0:
+            return "추세지속(익절 후 1R+ 연장)"
+        if (t["exit"] - adv) * sgn >= r0:
+            return "완벽(익절 직후 반전)"
+        return "중립"
+    if (fav - t["exit"]) * sgn >= r0:
+        return "조기(시간청산 후 원방향 1R+)"
+    if (t["exit"] - adv) * sgn >= r0:
+        return "적기(시간청산 후 역행)"
+    return "중립(계속 횡보)"
+
+
+def review_exits(led: dict, timeout: float) -> list[str]:
+    """복기 대기(청산 24h 경과) 트레이드를 분류하고 원장에 기록."""
+    msgs = []
+    now = int(time.time() * 1000)
+    for t in led["closed"]:
+        if t.get("review"):
+            continue
+        exit_ts = t["entry_ts"] + t.get("bars_held", 0) * 3600_000
+        if now - exit_ts < REVIEW_WAIT_H * 3600_000:
+            continue
+        try:
+            kl = _get(f"{FAPI}/fapi/v1/klines?symbol={t['symbol']}"
+                      f"&interval=1h&startTime={exit_ts}"
+                      f"&limit={REVIEW_BARS + 1}", timeout)[:REVIEW_BARS]
+            highs = [float(k[2]) for k in kl]
+            lows = [float(k[3]) for k in kl]
+        except Exception:
+            continue
+        t["review"] = _verdict(t, highs, lows)
+        emo = "🟢" if t["pnl"] > 0 else "🔴"
+        msgs.append(f"📚 복기 {t['symbol']} [{t['reason']}] {emo}"
+                    f"${t['pnl']:+.2f} → {t['review']}")
+    return msgs
+
+
+def review_summary(closed: list) -> str:
+    """복기 누적 통계 한 줄 (대시보드·리포트용)."""
+    revs = [t["review"] for t in closed if t.get("review")]
+    if not revs:
+        return "복기 데이터 누적 중"
+    def n(key):
+        return sum(1 for v in revs if v.startswith(key))
+    return (f"복기 {len(revs)}건 — 손절중 휩쏘 {n('휩쏘')}·정당 {n('정당')} / "
+            f"익절중 추세지속 {n('추세지속')}·완벽 {n('완벽')} / "
+            f"시간청산 조기 {n('조기')}·적기 {n('적기')}")
+
+
 # ── 전조 추적: 알림 등급(4/5+) 전조가 뜬 코인의 24h 결과를 기록 (자기검증) ──
 RADAR_TRACK = Path(__file__).resolve().parent.parent / "radar_track.json"
 TRACK_HOURS = 24            # 백테스트 라벨과 동일 창
@@ -1085,6 +1163,17 @@ def main():
         e3 = dict(ev)   # 하방 폭발도 적중
         m3 = _resolve_event(e3, [101.0], [90.0], 25 * 3600_000)
         assert m3 and e3["boom"] and "하방" in e3["outcome"]
+        # 청산 복기 분류: 휩쏘/정당/추세지속/조기
+        tw = {"direction": "LONG", "entry": 100.0, "stop": 95.0, "exit": 95.0,
+              "reason": "STOP", "risk0": 5.0}
+        assert _verdict(dict(tw), [101.0], [94.0]).startswith("휩쏘")
+        assert _verdict(dict(tw), [96.0], [88.0]).startswith("정당")
+        ts_ = {"direction": "SHORT", "entry": 100.0, "stop": 105.0,
+               "exit": 90.0, "reason": "TARGET", "risk0": 5.0}
+        assert _verdict(dict(ts_), [92.0], [84.0]).startswith("추세지속")
+        tt = {"direction": "LONG", "entry": 100.0, "stop": 95.0, "exit": 98.0,
+              "reason": "TIME", "risk0": 5.0}
+        assert _verdict(dict(tt), [104.0], [97.0]).startswith("조기")
         # 주식토큰 클러스터 상한: 분류·판정
         assert is_equity_token("SKHYNIXUSDT") and is_equity_token("NVDAUSDT")
         assert not is_equity_token("BTCUSDT") and not is_equity_token("ACHUSDT")
@@ -1123,6 +1212,7 @@ def main():
         led = _load_ledger()
         trade_msgs += settle_positions(led, args.timeout)   # 청산은 신호와 무관하게 매회
         trade_msgs += check_brackets(led, args.timeout)     # 대기 브래킷 발동 판정
+        trade_msgs += review_exits(led, args.timeout)       # 청산 24h 후 복기
 
     cands, btc_chg = screen_universe(args.top, args.min_z, not args.no_rs,
                                      args.timeout)
