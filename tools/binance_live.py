@@ -90,6 +90,10 @@ def _signed(method: str, path: str, params: dict | None = None,
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")
+        if '"code":-4411' in body:
+            raise RuntimeError(
+                "TradFi 퍼프(금·주식토큰) 약관 미서명 — 바이낸스 선물 화면에서 "
+                "해당 심볼을 한 번 열어 약관 동의(1회)하면 해제됩니다") from e
         raise RuntimeError(f"Binance {path}: HTTP{e.code} {body[:200]}") from e
 
 
