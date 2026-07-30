@@ -1,209 +1,254 @@
 {
   "slots_1": {
-    "equity": 713.71,
+    "equity": 735.7,
     "ruin": false,
-    "taken": 99,
+    "taken": 97,
     "skipped": 33,
     "mdd": -0.0779,
-    "worst_day": -35.13,
+    "worst_day": -35.49,
     "corr": 0.0
   },
   "slots_2": {
-    "equity": 776.36,
+    "equity": 849.85,
     "ruin": false,
-    "taken": 122,
-    "skipped": 10,
+    "taken": 119,
+    "skipped": 11,
     "mdd": -0.1045,
-    "worst_day": -39.4,
-    "corr": 0.73
+    "worst_day": -41.05,
+    "corr": 0.8
   },
   "slots_3": {
-    "equity": 800.58,
+    "equity": 856.78,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.67
+    "worst_day": -41.46,
+    "corr": 0.73
   },
   "slots_4": {
-    "equity": 788.48,
+    "equity": 843.83,
     "ruin": false,
-    "taken": 130,
+    "taken": 128,
     "skipped": 2,
     "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.65
+    "worst_day": -41.46,
+    "corr": 0.71
   },
   "slots_5": {
-    "equity": 797.29,
-    "ruin": false,
-    "taken": 131,
-    "skipped": 1,
-    "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.63
-  },
-  "slots_6": {
-    "equity": 805.67,
-    "ruin": false,
-    "taken": 132,
-    "skipped": 0,
-    "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.61
-  },
-  "slots_8": {
-    "equity": 805.67,
-    "ruin": false,
-    "taken": 132,
-    "skipped": 0,
-    "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.61
-  },
-  "risk_0.005": {
-    "equity": 588.35,
+    "equity": 840.89,
     "ruin": false,
     "taken": 129,
+    "skipped": 1,
+    "mdd": -0.1328,
+    "worst_day": -41.46,
+    "corr": 0.61
+  },
+  "slots_6": {
+    "equity": 865.77,
+    "ruin": false,
+    "taken": 130,
+    "skipped": 0,
+    "mdd": -0.1328,
+    "worst_day": -41.46,
+    "corr": 0.59
+  },
+  "slots_8": {
+    "equity": 865.77,
+    "ruin": false,
+    "taken": 130,
+    "skipped": 0,
+    "mdd": -0.1328,
+    "worst_day": -41.46,
+    "corr": 0.59
+  },
+  "risk_0.005": {
+    "equity": 601.87,
+    "ruin": false,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.0462,
     "worst_day": -11.36,
-    "corr": 0.67
+    "corr": 0.73
   },
   "risk_0.01": {
-    "equity": 690.63,
+    "equity": 722.67,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.0904,
     "worst_day": -24.42,
-    "corr": 0.67
+    "corr": 0.73
   },
   "risk_0.015": {
-    "equity": 800.58,
+    "equity": 856.78,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.67
+    "worst_day": -41.46,
+    "corr": 0.73
   },
   "risk_0.02": {
-    "equity": 932.62,
+    "equity": 1020.71,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1735,
-    "worst_day": -59.61,
-    "corr": 0.67
+    "worst_day": -62.99,
+    "corr": 0.73
   },
   "risk_0.03": {
-    "equity": 1226.69,
+    "equity": 1403.67,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.2437,
-    "worst_day": -108.27,
-    "corr": 0.67
+    "worst_day": -117.69,
+    "corr": 0.73
   },
   "risk_0.05": {
-    "equity": 1576.25,
+    "equity": 1969.46,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.3356,
-    "worst_day": -224.3,
-    "corr": 0.67
+    "worst_day": -258.55,
+    "corr": 0.73
   },
   "lev_1.0": {
-    "equity": 804.38,
+    "equity": 860.85,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1294,
     "worst_day": -36.18,
-    "corr": 0.67
+    "corr": 0.73
   },
   "lev_2.0": {
-    "equity": 800.58,
+    "equity": 856.78,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.67
+    "worst_day": -41.46,
+    "corr": 0.73
   },
   "lev_3.0": {
-    "equity": 803.38,
+    "equity": 859.78,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1328,
-    "worst_day": -39.93,
-    "corr": 0.67
+    "worst_day": -41.6,
+    "corr": 0.73
   },
   "lev_5.0": {
-    "equity": 798.33,
+    "equity": 854.37,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1328,
-    "worst_day": -39.68,
-    "corr": 0.67
+    "worst_day": -41.34,
+    "corr": 0.73
   },
   "lev_10.0": {
-    "equity": 797.76,
+    "equity": 853.76,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1328,
-    "worst_day": -39.65,
+    "worst_day": -41.31,
+    "corr": 0.73
+  },
+  "cap_기본(제한없음)": {
+    "equity": 856.78,
+    "ruin": false,
+    "taken": 127,
+    "skipped": 3,
+    "mdd": -0.1328,
+    "worst_day": -41.46,
+    "corr": 0.73
+  },
+  "cap_동방향 최대2": {
+    "equity": 859.09,
+    "ruin": false,
+    "taken": 124,
+    "skipped": 6,
+    "mdd": -0.1328,
+    "worst_day": -40.92,
     "corr": 0.67
+  },
+  "cap_주식토큰 최대1": {
+    "equity": 711.68,
+    "ruin": false,
+    "taken": 105,
+    "skipped": 25,
+    "mdd": -0.0789,
+    "worst_day": -34.42,
+    "corr": 0.6
+  },
+  "cap_주식토큰 최대2": {
+    "equity": 848.32,
+    "ruin": false,
+    "taken": 122,
+    "skipped": 8,
+    "mdd": -0.1045,
+    "worst_day": -41.05,
+    "corr": 0.79
+  },
+  "cap_동방향2+주식토큰1": {
+    "equity": 722.65,
+    "ruin": false,
+    "taken": 104,
+    "skipped": 26,
+    "mdd": -0.0789,
+    "worst_day": -34.42,
+    "corr": 0.56
   },
   "combo_3_0.015": {
-    "equity": 800.58,
+    "equity": 856.78,
     "ruin": false,
-    "taken": 129,
+    "taken": 127,
     "skipped": 3,
     "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.67
+    "worst_day": -41.46,
+    "corr": 0.73
   },
   "combo_5_0.015": {
-    "equity": 797.29,
+    "equity": 840.89,
     "ruin": false,
-    "taken": 131,
+    "taken": 129,
     "skipped": 1,
     "mdd": -0.1328,
-    "worst_day": -39.79,
-    "corr": 0.63
+    "worst_day": -41.46,
+    "corr": 0.61
   },
   "combo_5_0.03": {
-    "equity": 1216.2,
+    "equity": 1351.76,
     "ruin": false,
-    "taken": 131,
+    "taken": 129,
     "skipped": 1,
     "mdd": -0.2437,
-    "worst_day": -108.27,
-    "corr": 0.63
+    "worst_day": -117.69,
+    "corr": 0.61
   },
   "combo_8_0.03": {
-    "equity": 1241.77,
+    "equity": 1431.73,
     "ruin": false,
-    "taken": 132,
+    "taken": 130,
     "skipped": 0,
     "mdd": -0.2437,
-    "worst_day": -108.27,
-    "corr": 0.61
+    "worst_day": -117.69,
+    "corr": 0.59
   },
   "combo_8_0.05": {
-    "equity": 1607.01,
+    "equity": 2030.79,
     "ruin": false,
-    "taken": 132,
+    "taken": 130,
     "skipped": 0,
     "mdd": -0.3356,
-    "worst_day": -224.3,
-    "corr": 0.61
+    "worst_day": -258.55,
+    "corr": 0.59
   }
 }

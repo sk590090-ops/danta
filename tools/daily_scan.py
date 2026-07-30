@@ -52,6 +52,27 @@ def is_excluded(symbol: str) -> bool:
     return base in EXCLUDED_BASES
 
 
+# 주식토큰 클러스터(동반등락 성향) — 동시 보유 상한 (2026-07-30 실전 사고 대응:
+# 반도체/한국물 9건 1승8패 −$37 쏠림. portfolio_sim E검증: 상한2 = 수익 −1.8%p로
+# MDD −13.3%→−10.4%. 상한1은 수익 희생 과다로 기각). 휴리스틱 명단 — 수동 유지.
+EQUITY_TOKEN_BASES = {
+    "SNDK", "SKHYNIX", "SOXL", "MU", "KORU", "SKHY", "QQQ", "EWY", "DRAM",
+    "SAMSUNG", "INTC", "NVDA", "SPCX", "AAPL", "MSFT", "TSLA", "GOOGL",
+    "META", "AMZN", "COIN", "HOOD", "CRCL", "IONQ", "AEHR", "MARA", "POET",
+    "TSEM", "MUU", "AMD", "AVGO", "TSM", "ARM", "SMCI", "PLTR", "MSTR"}
+EQUITY_CLUSTER_CAP = 2
+
+
+def is_equity_token(symbol: str) -> bool:
+    base = symbol[:-4] if symbol.endswith("USDT") else symbol
+    return base in EQUITY_TOKEN_BASES
+
+
+def _equity_cluster_full(led: dict) -> bool:
+    n = sum(1 for p in led["open"] if is_equity_token(p["symbol"]))
+    return n >= EQUITY_CLUSTER_CAP
+
+
 # 텔레그램 자격증명 탐색 경로 (기존 봇들과 공유 — 값은 코드에 저장 안 함)
 _ENV_PATHS = [
     Path(__file__).resolve().parent.parent / ".env",              # pattern_trader
@@ -262,6 +283,10 @@ def enter_positions(led: dict, cands, t0: str) -> list[str]:
         if info.get("signal") not in ("LONG", "SHORT") or "plan" not in info:
             continue
         if sym in open_syms:
+            continue
+        if is_equity_token(sym) and _equity_cluster_full(led):
+            msgs.append(f"⛔ {sym} 신호 스킵 — 주식토큰 동시보유 상한"
+                        f"({EQUITY_CLUSTER_CAP}) 도달 (쏠림 방지)")
             continue
         p = info["plan"]
         entry, stop, target = p["entry"], p["stop"], p["target"]
@@ -861,6 +886,10 @@ def check_brackets(led: dict, timeout: float) -> list[str]:
         if len(led["open"]) >= MAX_POSITIONS:
             msgs.append(f"📐 {b['symbol']} 발동했으나 슬롯 만석 — 미진입")
             continue
+        if is_equity_token(b["symbol"]) and _equity_cluster_full(led):
+            msgs.append(f"⛔ 📐 {b['symbol']} 발동했으나 주식토큰 상한"
+                        f"({EQUITY_CLUSTER_CAP}) — 미진입 (쏠림 방지)")
+            continue
         atr = b["atr"]
         qty = (led["equity"] * RISK_PER_TRADE) / atr
         qty = min(qty, led["equity"] * MAX_LEVERAGE / entry)
@@ -1056,6 +1085,13 @@ def main():
         e3 = dict(ev)   # 하방 폭발도 적중
         m3 = _resolve_event(e3, [101.0], [90.0], 25 * 3600_000)
         assert m3 and e3["boom"] and "하방" in e3["outcome"]
+        # 주식토큰 클러스터 상한: 분류·판정
+        assert is_equity_token("SKHYNIXUSDT") and is_equity_token("NVDAUSDT")
+        assert not is_equity_token("BTCUSDT") and not is_equity_token("ACHUSDT")
+        _led = {"open": [{"symbol": "KORUUSDT"}, {"symbol": "EWYUSDT"}]}
+        assert _equity_cluster_full(_led)                      # 2개 = 상한 도달
+        _led2 = {"open": [{"symbol": "KORUUSDT"}, {"symbol": "BTCUSDT"}]}
+        assert not _equity_cluster_full(_led2)                 # 주식토큰은 1개뿐
         # +1R 본절 이동 (브래킷 한정): 도달→본절 청산 / OBV는 원형 유지
         bp = {"symbol": "T", "direction": "LONG", "entry": 100.0, "stop": 95.0,
               "target": 110.0, "entry_ts": 0, "bars_held": 0, "risk0": 5.0,
