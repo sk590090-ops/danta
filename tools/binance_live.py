@@ -278,19 +278,33 @@ def close_trade(symbol: str, timeout: float = 10.0) -> dict:
             break
         except RuntimeError as e:
             out["algo_cancelled"] = f"실패: {str(e)[:120]}"
-    pos = positions(symbol, timeout)
-    if pos:
+    # 청산 후 검증+재시도: 거래소측 TP/SL 부분체결과 시장가 청산이 겹치면
+    # 먼지 잔여가 남을 수 있다 (2026-07-30 PAXG 0.001 잔존 실측). 최대 2회.
+    closed_total = 0.0
+    for attempt in range(2):
+        pos = positions(symbol, timeout)
+        if not pos:
+            break
         amt = pos[0]["amt"]
         side = "SELL" if amt > 0 else "BUY"
         f = filters(symbol, timeout)
+        q = _round_step(abs(amt), f["stepSize"])
+        if float(q) <= 0:
+            out["dust"] = abs(amt)             # 스텝 미만 먼지 — 청산 불가 고지
+            break
         r = _signed("POST", "/fapi/v1/order", {
             "symbol": symbol, "side": side, "type": "MARKET",
-            "quantity": _round_step(abs(amt), f["stepSize"]),
-            "reduceOnly": "true"}, timeout=timeout)
-        out["closed_qty"] = abs(amt)
+            "quantity": q, "reduceOnly": "true"}, timeout=timeout)
+        closed_total += abs(amt)
         out["order_id"] = r.get("orderId")
-    else:
+        time.sleep(1.0)                        # 체결 반영 대기 후 재검증
+    if closed_total:
+        out["closed_qty"] = round(closed_total, 8)
+    elif "dust" not in out:
         out["note"] = "잔여 포지션 없음"
+    leftover = positions(symbol, timeout)
+    if leftover:
+        out["warning"] = f"잔여 미정리 {leftover[0]['amt']} — 수동 확인 필요"
     return out
 
 
