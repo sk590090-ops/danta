@@ -195,17 +195,18 @@ def _walk_bars(pos: dict, bars: list[tuple[int, float, float, float]]):
         if ts <= pos["entry_ts"]:
             continue
         held += 1
+        tgt = pos.get("target")            # None = 지표 청산형(일목) — 목표가 없음
         if long:
             if lo <= pos["stop"]:
                 return pos["stop"], ("BE" if pos.get("be_armed") else "STOP"), held
-            if hi >= pos["target"]:
-                return pos["target"], "TARGET", held
+            if tgt is not None and hi >= tgt:
+                return tgt, "TARGET", held
         else:
             if hi >= pos["stop"]:
                 return pos["stop"], ("BE" if pos.get("be_armed") else "STOP"), held
-            if lo <= pos["target"]:
-                return pos["target"], "TARGET", held
-        if held >= HOLD_MAX_BARS:
+            if tgt is not None and lo <= tgt:
+                return tgt, "TARGET", held
+        if held >= pos.get("hold_max", HOLD_MAX_BARS):
             return close, "TIME", held
         # +1R 본절 이동 (봉 마감 후 적용 → 다음 봉부터 유효)
         if be_on and not pos.get("be_armed") and r0 > 0:
@@ -322,11 +323,12 @@ def _charts_payload(led: dict, timeout: float) -> list[dict]:
     최근 96시간 종가 + 수평 기준선. 최대 6개 심볼."""
     items = []
     for p in led["open"]:
-        items.append((p["symbol"], f"{p['direction']}"
-                      + (" · 브래킷" if p.get("setup") == "RADAR_BRACKET" else ""),
-                      [("진입", p["entry"], "#6d8cff"),
-                       ("손절", p["stop"], "#ff6b6b"),
-                       ("목표", p["target"], "#34d399")]))
+        lines = [("진입", p["entry"], "#6d8cff"), ("손절", p["stop"], "#ff6b6b")]
+        if p.get("target") is not None:
+            lines.append(("목표", p["target"], "#34d399"))
+        tag = p["direction"] + (" · 브래킷" if p.get("setup") == "RADAR_BRACKET"
+                                else " · 일목" if p.get("setup") == "ICHIMOKU_4H" else "")
+        items.append((p["symbol"], tag, lines))
     for b in led.get("brackets", []):
         items.append((b["symbol"], "브래킷 대기 — 먼저 뚫리는 쪽으로 진입",
                       [("롱 진입선(상단 돌파)", b["up"], "#fbbf24"),
@@ -383,8 +385,9 @@ def render_dashboard(led: dict, cands, t0: str, radar: list | None = None,
         notional = p["qty"] * p["entry"]
         tot_notional += notional
         lev = notional / led["equity"] if led["equity"] else 0.0
-        prog = ((cur - p["entry"]) / (p["target"] - p["entry"]) * 100
-                if cur and p["target"] != p["entry"] else 0.0)
+        tgt = p.get("target")
+        prog = ((cur - p["entry"]) / (tgt - p["entry"]) * 100
+                if cur and tgt is not None and tgt != p["entry"] else 0.0)
         w = max(0, min(100, prog))
         open_rows += (
             f"<tr><td>{esc(sym)}"
@@ -399,7 +402,8 @@ def render_dashboard(led: dict, cands, t0: str, radar: list | None = None,
             f"data-sym='{esc(sym)}' style='width:{w if prog>=0 else min(100,-prog):.0f}%'></div></div>"
             f"<span class='mut pt' data-sym='{esc(sym)}' style=font-size:10px>"
             f"{prog:.0f}%</span></td>"
-            f"<td class=mut>{p['stop']:g} / {p['target']:g}</td>"
+            f"<td class=mut>{p['stop']:g} / "
+            f"{f'{tgt:g}' if tgt is not None else '지표청산'}</td>"
             f"<td>{p.get('bars_held',0)}봉</td></tr>")
     open_rows += "".join(
         f"<tr><td>📐 {esc(b['symbol'])}</td><td class=mut>브래킷 대기</td>"
@@ -547,7 +551,7 @@ async function liveUpdate(){{
       const cur=parseFloat((await r.json()).price);
       const sgn=p.direction==='LONG'?1:-1;
       const upnl=(cur-p.entry)*sgn*p.qty; tot+=upnl;
-      const prog=(cur-p.entry)/(p.target-p.entry)*100;
+      const prog=p.target?(cur-p.entry)/(p.target-p.entry)*100:0;
       const q=(sel)=>document.querySelector(sel+`[data-sym="${{p.symbol}}"]`);
       if(q('.cur')) q('.cur').textContent=cur;
       const u=q('.upnl');
@@ -915,6 +919,131 @@ def check_brackets(led: dict, timeout: float) -> list[str]:
     return msgs
 
 
+# ── ICHIMOKU_4H 셋업 (2026-07-31 검증 채택: ichimoku_study/confirm) ──
+# 4h 롱 온리: 전환>기준 교차 ∧ 구름 위 종가 ∧ 후행스팬↑ (표준 9/26/52 무튜닝).
+# 원형 PF 1.71(n196, 전후반 1.64/1.80) · +2ATR 재난손절 공존 확인(PF 1.71 유지,
+# 4분할 3/4 흑자). 청산 = 기준선 하회 or 구름 재진입(지표) + 2ATR 손절 + 96봉(4h).
+# 3ATR(PF 1.83)이 아닌 2ATR 채택 = 성적 아닌 리스크 근거(튜닝 회피).
+ICHI_UNIVERSE_N = 30        # 검증과 동일: 거래대금 상위 30 (Z스크리너와 별개)
+ICHI_STOP_ATR = 2.0
+ICHI_HOLD_1H = 384          # 96 × 4h봉 = 16일 (1h 단위)
+
+
+def ichimoku_cycle(led: dict, timeout: float) -> list[str]:
+    """4h봉 마감마다 1회: 보유 일목 포지션 지표 청산 + 신규 롱 스캔."""
+    from ichimoku_study import ichimoku          # 지연 임포트(순환 방지)
+    from radar_entry_study import _atr14
+    msgs: list[str] = []
+    bucket = int(time.time() * 1000) // (4 * 3600_000)
+    if led.get("ichi_bucket") == bucket:
+        return msgs
+    led["ichi_bucket"] = bucket
+
+    def _ichi_state(sym):
+        kl = _get(f"{FAPI}/fapi/v1/klines?symbol={sym}"
+                  f"&interval=4h&limit=140", timeout)[:-1]
+        if len(kl) < 130:
+            return None
+        h = [float(k[2]) for k in kl]
+        l = [float(k[3]) for k in kl]
+        c = [float(k[4]) for k in kl]
+        return h, l, c
+
+    # (1) 보유 일목 포지션 — 지표 청산 판정
+    for pos in list(led["open"]):
+        if pos.get("setup") != "ICHIMOKU_4H":
+            continue
+        try:
+            st = _ichi_state(pos["symbol"])
+        except Exception:
+            continue
+        if st is None:
+            continue
+        h, l, c = st
+        tk, kj, sa, sb = ichimoku(h, l, len(c) - 1)
+        if sa is None:
+            continue
+        if c[-1] < kj or c[-1] < max(sa, sb):
+            exit_p = c[-1]
+            gross = (exit_p - pos["entry"]) * pos["qty"]
+            fees = (pos["entry"] + exit_p) * pos["qty"] * TAKER_FEE
+            pnl = gross - fees
+            led["equity"] += pnl
+            risk = pos.get("risk0", 1e-9) * pos["qty"]
+            pos.update(exit=exit_p, reason="ICHI",
+                       pnl=round(pnl, 2), r=round(pnl / risk, 2) if risk else 0)
+            led["open"].remove(pos)
+            led["closed"].append(pos)
+            emo = "🟢" if pnl > 0 else "🔴"
+            msgs.append(f"{emo} 청산 {pos['symbol']} LONG [일목지표] "
+                        f"net ${pnl:+.2f} ({pos['r']:+.2f}R) "
+                        f"→ 자본 ${led['equity']:.2f}")
+            lm = _live("close_trade", pos["symbol"])
+            if lm:
+                msgs.append("  " + lm)
+
+    # (2) 신규 스캔 — 공용 게이트(일손실·슬롯·클러스터) 준수
+    if led["equity"] <= led.get("day_start_equity", led["equity"]) * (1 - DAILY_LOSS_STOP):
+        return msgs
+    try:
+        tickers = _get(f"{FAPI}/fapi/v1/ticker/24hr", timeout)
+        perp = sorted([t for t in tickers
+                       if t["symbol"].endswith("USDT")
+                       and "_" not in t["symbol"]
+                       and not is_excluded(t["symbol"])],
+                      key=lambda t: float(t["quoteVolume"]),
+                      reverse=True)[:ICHI_UNIVERSE_N]
+    except Exception:
+        return msgs
+    open_syms = {p["symbol"] for p in led["open"]}
+    for t in perp:
+        sym = t["symbol"]
+        if len(led["open"]) >= MAX_POSITIONS:
+            break
+        if sym in open_syms:
+            continue
+        if is_equity_token(sym) and _equity_cluster_full(led):
+            continue
+        try:
+            st = _ichi_state(sym)
+        except Exception:
+            continue
+        if st is None:
+            continue
+        h, l, c = st
+        i = len(c) - 1
+        tk, kj, sa, sb = ichimoku(h, l, i)
+        if sa is None:
+            continue
+        tk_p, kj_p, _, _ = ichimoku(h, l, i - 1)
+        cross = tk > kj and tk_p <= kj_p
+        if not (cross and c[i] > max(sa, sb) and c[i] > c[i - 26]):
+            continue
+        atr = _atr14(h, l, c, i)
+        if atr <= 0:
+            continue
+        entry = c[i]
+        stop = entry - ICHI_STOP_ATR * atr
+        qty = (led["equity"] * RISK_PER_TRADE) / (ICHI_STOP_ATR * atr)
+        qty = min(qty, led["equity"] * MAX_LEVERAGE / entry)
+        if qty * entry < 5:
+            continue
+        led["open"].append({
+            "symbol": sym, "direction": "LONG", "entry": entry, "stop": stop,
+            "target": None, "qty": qty, "risk0": ICHI_STOP_ATR * atr,
+            "entry_ts": int(time.time() * 1000), "setup": "ICHIMOKU_4H",
+            "hold_max": ICHI_HOLD_1H,
+            "opened": time.strftime("%Y-%m-%d %H:%M"), "bars_held": 0})
+        open_syms.add(sym)
+        msgs.append(f"🎯 진입 {sym} LONG [일목4h] ${qty*entry:,.0f} "
+                    f"(레버 {qty*entry/led['equity']:.2f}x) · 진입 {entry:g} "
+                    f"손절 {stop:g} · 청산=지표(기준선/구름)+2ATR")
+        lm = _live("open_trade", sym, "LONG", qty, stop, None)
+        if lm:
+            msgs.append("  " + lm)
+    return msgs
+
+
 # ── 청산 복기(post-mortem): 청산 24h 후 가격으로 '왜'를 분류·축적 ──
 # 목적: 같은 실수의 반복 감지. 단 복기는 '관찰'이며, 규칙 변경은 반드시
 # 연구 하니스(exit_study 등) 검증을 거친다 — 복기→즉흥 튜닝 금지.
@@ -1213,6 +1342,7 @@ def main():
         trade_msgs += settle_positions(led, args.timeout)   # 청산은 신호와 무관하게 매회
         trade_msgs += check_brackets(led, args.timeout)     # 대기 브래킷 발동 판정
         trade_msgs += review_exits(led, args.timeout)       # 청산 24h 후 복기
+        trade_msgs += ichimoku_cycle(led, args.timeout)     # 일목 4h (마감시 1회)
 
     cands, btc_chg = screen_universe(args.top, args.min_z, not args.no_rs,
                                      args.timeout)

@@ -221,17 +221,19 @@ def open_trade(symbol: str, direction: str, qty: float,
         "type": "STOP_MARKET",
         "triggerPrice": _round_step(stop, f["tickSize"]),
         "closePosition": "true", "workingType": "MARK_PRICE"}, timeout=timeout)
-    tp = _signed("POST", "/fapi/v1/algoOrder", {
-        "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
-        "type": "TAKE_PROFIT_MARKET",
-        "triggerPrice": _round_step(target, f["tickSize"]),
-        "closePosition": "true", "workingType": "CONTRACT_PRICE"},
-        timeout=timeout)
+    tp = None
+    if target is not None:              # 지표 청산형(일목)은 TP 없이 SL만
+        tp = _signed("POST", "/fapi/v1/algoOrder", {
+            "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
+            "type": "TAKE_PROFIT_MARKET",
+            "triggerPrice": _round_step(target, f["tickSize"]),
+            "closePosition": "true", "workingType": "CONTRACT_PRICE"},
+            timeout=timeout)
     return {"env": env_label(), "symbol": symbol, "qty": q,
             "notional": round(notional, 2),
             "entry_id": entry.get("orderId"),
             "sl_id": sl.get("algoId") or sl.get("orderId"),
-            "tp_id": tp.get("algoId") or tp.get("orderId")}
+            "tp_id": (tp.get("algoId") or tp.get("orderId")) if tp else None}
 
 
 def update_stops(symbol: str, direction: str, stop: float, target: float,
