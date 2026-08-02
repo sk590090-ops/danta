@@ -59,7 +59,8 @@ EQUITY_TOKEN_BASES = {
     "SNDK", "SKHYNIX", "SOXL", "MU", "KORU", "SKHY", "QQQ", "EWY", "DRAM",
     "SAMSUNG", "INTC", "NVDA", "SPCX", "AAPL", "MSFT", "TSLA", "GOOGL",
     "META", "AMZN", "COIN", "HOOD", "CRCL", "IONQ", "AEHR", "MARA", "POET",
-    "TSEM", "MUU", "AMD", "AVGO", "TSM", "ARM", "SMCI", "PLTR", "MSTR"}
+    "TSEM", "MUU", "AMD", "AVGO", "TSM", "ARM", "SMCI", "PLTR", "MSTR",
+    "HYUNDAI", "KIA", "POSCO", "LGES", "NAVER", "KAKAO"}
 EQUITY_CLUSTER_CAP = 2
 
 
