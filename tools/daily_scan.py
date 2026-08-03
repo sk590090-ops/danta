@@ -184,17 +184,23 @@ def _walk_bars(pos: dict, bars: list[tuple[int, float, float, float]]):
     반환 (exit_price, reason, bars_held) 또는 None(계속 보유).
     같은 봉에서 손절·목표 동시 터치면 손절 우선(보수적).
 
-    브래킷 포지션 한정 '+1R 본절 이동'(exit_study C안, 2026-07-30 채택):
-    +1R 도달 확인 후 손절을 진입가로 올린다(다음 봉부터 적용 — 같은 봉 내
-    순서를 알 수 없으므로 보수적). PF 1.86→2.32(전후반 2.40/2.23) 검증.
+    브래킷 포지션 한정 '본절 이동'(exit_study C안 2026-07-30 채택,
+    발동 기준은 2026-08-04 exit_grid_study로 +1R→+1.3R 상향):
+    +BE_TRIGGER_R×R 도달 확인 후 손절을 진입가로 올린다(다음 봉부터 적용 —
+    같은 봉 내 순서를 알 수 없으므로 보수적).
     OBV_DIV 포지션은 검증 범위 밖이라 원형 유지."""
     held = pos.get("bars_held", 0)
     long = pos["direction"] == "LONG"
     be_on = pos.get("setup") == "RADAR_BRACKET"
     r0 = pos.get("risk0", abs(pos["entry"] - pos["stop"]))
+    # last_ts: 이미 정산한 봉은 다시 세지 않는다. (2026-08-03 수정 — 종전엔
+    # 매 스캔 진입시점부터 재계산해 bars_held가 이중 누적됐고, 시간청산 조기
+    # 발동 + BE 소급 적용 + 청산시각 왜곡을 일으켰다.)
     for ts, hi, lo, close in bars:
-        if ts <= pos["entry_ts"]:
+        if ts <= pos.get("last_ts", pos["entry_ts"]):
             continue
+        pos["last_ts"] = ts
+        pos["exit_ts"] = ts + 3600_000     # 청산 시 이 봉의 마감시각이 남는다
         held += 1
         tgt = pos.get("target")            # None = 지표 청산형(일목) — 목표가 없음
         if long:
@@ -209,9 +215,11 @@ def _walk_bars(pos: dict, bars: list[tuple[int, float, float, float]]):
                 return tgt, "TARGET", held
         if held >= pos.get("hold_max", HOLD_MAX_BARS):
             return close, "TIME", held
-        # +1R 본절 이동 (봉 마감 후 적용 → 다음 봉부터 유효)
+        # +1.3R 본절 이동 (봉 마감 후 적용 → 다음 봉부터 유효)
         if be_on and not pos.get("be_armed") and r0 > 0:
-            hit_1r = (hi >= pos["entry"] + r0) if long else (lo <= pos["entry"] - r0)
+            be_px = BE_TRIGGER_R * r0
+            hit_1r = ((hi >= pos["entry"] + be_px) if long
+                      else (lo <= pos["entry"] - be_px))
             if hit_1r:
                 pos["stop"] = pos["entry"]
                 pos["be_armed"] = True
@@ -354,6 +362,47 @@ def _charts_payload(led: dict, timeout: float) -> list[dict]:
     return out
 
 
+def _calendar_html(closed: list) -> str:
+    """매매 캘린더 — 청산일 기준 일별 손익·건수를 월 달력으로. (복기와 동일하게
+    청산시각 = entry_ts + bars_held×1h 로 계산)"""
+    import calendar as _cal
+    from datetime import datetime as _dt
+    days: dict = {}
+    now_ms = int(time.time() * 1000)
+    for t in closed:
+        ts = min(t.get("exit_ts")
+                 or (t.get("entry_ts", 0) + t.get("bars_held", 0) * 3600_000),
+                 now_ms)                       # 구버전 부풀린 bars_held 방어
+        d = _dt.fromtimestamp(ts / 1000).date()
+        rec = days.setdefault(d, [0.0, 0])
+        rec[0] += t.get("pnl", 0)
+        rec[1] += 1
+    if not days:
+        return "<div class=mut>청산 기록 없음</div>"
+    today = _dt.now().date()
+    out = ""
+    for y, m in sorted({(d.year, d.month) for d in days}):
+        mvals = [v for d, v in days.items() if (d.year, d.month) == (y, m)]
+        mt, mn = sum(v[0] for v in mvals), sum(v[1] for v in mvals)
+        cells = "".join(f"<div class='cal h'>{w}</div>" for w in "월화수목금토일")
+        first_wd, ndays = _cal.monthrange(y, m)
+        cells += "<div class=cal></div>" * first_wd
+        for dd in range(1, ndays + 1):
+            d = _dt(y, m, dd).date()
+            v = days.get(d)
+            cls = "cal" + (" today" if d == today else "")
+            body = ""
+            if v:
+                cls += " calup" if v[0] > 0 else (" caldn" if v[0] < 0 else "")
+                body = f"<b>${v[0]:+.1f}</b><span>{v[1]}건</span>"
+            cells += f"<div class='{cls}'><i>{dd}</i>{body}</div>"
+        out += (f"<div class=calmon><div class=calhead>📅 {y}년 {m}월 &nbsp;"
+                f"<span class='{'up' if mt >= 0 else 'dn'}'>${mt:+.2f}</span> "
+                f"<span class=mut>· {mn}건</span></div>"
+                f"<div class=calgrid>{cells}</div></div>")
+    return out
+
+
 def render_dashboard(led: dict, cands, t0: str, radar: list | None = None,
                      track: dict | None = None,
                      charts: list | None = None) -> None:
@@ -396,7 +445,7 @@ def render_dashboard(led: dict, cands, t0: str, radar: list | None = None,
             f"<td class='{p['direction'].lower()}'>{p['direction']}</td>"
             f"<td><b>${notional:,.0f}</b> <span class=mut>{lev:.2f}x</span></td>"
             f"<td>{p['entry']:g}</td>"
-            f"<td class=cur data-sym='{esc(sym)}'>{cur:g}</td>"
+            f"<td class=cur data-sym='{esc(sym)}'>{f'{cur:g}' if cur else '—'}</td>"
             f"<td class='upnl {'up' if upnl>=0 else 'dn'}' data-sym='{esc(sym)}'>"
             f"${upnl:+.2f}</td>"
             f"<td><div class=pbar><div class='{'neg' if prog<0 else ''}' "
@@ -484,7 +533,19 @@ h2{{font-size:13px;color:#9fb0d6;margin:16px 0 2px}}
  border-radius:20px;padding:3px 11px;font-size:12px;margin-right:6px}}
 .pbar{{background:#1a2340;border-radius:6px;height:10px;width:110px;overflow:hidden}}
 .pbar div{{height:100%;background:linear-gradient(90deg,#34d399,#2dd4bf);border-radius:6px}}
-.pbar div.neg{{background:linear-gradient(90deg,#ff6b6b,#f43f5e)}}</style></head><body>
+.pbar div.neg{{background:linear-gradient(90deg,#ff6b6b,#f43f5e)}}
+.calmon{{display:inline-block;vertical-align:top;margin:0 18px 14px 0}}
+.calhead{{font-size:13px;margin:4px 0 6px}}
+.calgrid{{display:grid;grid-template-columns:repeat(7,64px);gap:4px}}
+.cal{{background:#151d31;border:1px solid #1a2340;border-radius:7px;min-height:44px;
+ padding:3px 5px;font-size:10px;position:relative}}
+.cal.h{{background:none;border:none;min-height:14px;color:#7f8bab;text-align:center}}
+.cal i{{font-style:normal;color:#7f8bab;font-size:9px}}
+.cal b{{display:block;font-size:11px;margin-top:2px}}
+.cal span{{color:#7f8bab;font-size:9px}}
+.cal.calup{{border-color:#1f5a44}} .cal.calup b{{color:#34d399}}
+.cal.caldn{{border-color:#6b2530}} .cal.caldn b{{color:#ff6b6b}}
+.cal.today{{outline:1px solid #4a6ff0}}</style></head><body>
 <h1>⚡ 선물 단타 상황판 <span class=mut style=font-size:12px>갱신 {t0} · 매시 5분 자동 스캔 · 60초 자동 새로고침</span></h1>
 <div><span class=chip id=live>🟢 시스템 정상</span>
 <span class=chip>📲 텔레그램 알림 ON</span>
@@ -510,6 +571,8 @@ h2{{font-size:13px;color:#9fb0d6;margin:16px 0 2px}}
 <table><tr><th>심볼</th><th>전조</th><th>경과</th><th>최대상방</th><th>최대하방</th><th>판정</th></tr>{track_rows}</table>
 <h2>📜 최근 청산 <span class=mut style="text-transform:none;font-weight:500">— {review_summary(closed)}</span></h2>
 <table><tr><th>심볼</th><th>방향</th><th>사유</th><th>손익</th><th>보유</th><th>📚 복기 (24h 후 판정)</th></tr>{closed_rows}</table>
+<h2>📅 매매 캘린더 <span class=mut style="text-transform:none;font-weight:500">— 청산일 기준 일별 손익</span></h2>
+{_calendar_html(closed)}
 <script>
 const gen={now_ms}, mins=Math.floor((Date.now()-gen)/60000);
 if(mins>75){{document.getElementById('alarm').style.display='block';
@@ -806,6 +869,12 @@ _FLAG_KR = {"ign": "점화", "fuel": "연료", "sq": "압축",
 # PF 1.52 (전반 1.22/후반 1.90) — 파라미터 무튜닝 통과. 슬리피지 미반영 유의.
 BRACKET_ATR_MULT = 0.5      # 트리거 폭 (연구와 동일 — 튜닝 금지)
 BRACKET_WINDOW_H = 6        # 트리거 유효시간
+# 2026-08-04 exit_grid_study 채택 (복기 트리거: 추세지속6·BE휩쏘5 도달):
+# 목표 2.0R→2.5R, 본절 발동 +1.0R→+1.3R. 2.5R×BE1.3 = avgR 0.743·PF 3.23
+# (현행 0.552·2.92), 전후반 3.20/3.26 일관·4분할 최저 2.87. 무본절은 전 조합
+# 열세(PF 2.21↓) → 본절 규칙 자체는 유지. 브래킷 경로 한정(OBV·일목 원형).
+BRACKET_TARGET_R = 2.5
+BE_TRIGGER_R = 1.3
 
 
 def _bracket_hit(b: dict, bars: list[tuple[int, float, float]]):
@@ -902,18 +971,19 @@ def check_brackets(led: dict, timeout: float) -> list[str]:
         if qty * entry < 5:
             continue
         sgn = 1 if direction == "LONG" else -1
+        tgt = entry + sgn * BRACKET_TARGET_R * atr
         led["open"].append({
             "symbol": b["symbol"], "direction": direction, "entry": entry,
-            "stop": entry - sgn * atr, "target": entry + sgn * 2 * atr,
+            "stop": entry - sgn * atr, "target": tgt,
             "qty": qty, "risk0": atr, "entry_ts": bar_ts,
             "setup": "RADAR_BRACKET",
             "opened": time.strftime("%Y-%m-%d %H:%M"), "bars_held": 0})
         msgs.append(f"🎯 진입 {b['symbol']} {direction} [브래킷] "
                     f"${qty*entry:,.0f} (레버 {qty*entry/led['equity']:.2f}x) · "
                     f"진입 {entry:g} 손절 {entry - sgn*atr:g} "
-                    f"목표 {entry + sgn*2*atr:g}")
+                    f"목표 {tgt:g}")
         lm = _live("open_trade", b["symbol"], direction, qty,
-                   entry - sgn * atr, entry + sgn * 2 * atr)
+                   entry - sgn * atr, tgt)
         if lm:
             msgs.append("  " + lm)
     led["brackets"] = keep
@@ -1092,7 +1162,8 @@ def review_exits(led: dict, timeout: float) -> list[str]:
     for t in led["closed"]:
         if t.get("review"):
             continue
-        exit_ts = t["entry_ts"] + t.get("bars_held", 0) * 3600_000
+        exit_ts = min(t.get("exit_ts")
+                      or (t["entry_ts"] + t.get("bars_held", 0) * 3600_000), now)
         if now - exit_ts < REVIEW_WAIT_H * 3600_000:
             continue
         try:
@@ -1260,6 +1331,9 @@ def main():
         assert _walk_bars(dict(pos), [(1, 111, 94, 96)])[1] == "STOP"   # 동시→보수
         p2 = dict(pos)
         assert _walk_bars(p2, [(1, 101, 99, 100)]) is None and p2["bars_held"] == 1
+        # 재정산해도 같은 봉은 다시 세지 않는다 (이중 누적 버그 회귀 방지)
+        assert _walk_bars(p2, [(1, 101, 99, 100), (2, 101, 99, 100)]) is None \
+            and p2["bars_held"] == 2
         long_bars = [(i, 101, 99, 100) for i in range(1, HOLD_MAX_BARS + 2)]
         assert _walk_bars(dict(pos), long_bars)[1] == "TIME"
         s = {"direction": "SHORT", "entry": 100.0, "stop": 105.0,
@@ -1316,9 +1390,11 @@ def main():
               "target": 110.0, "entry_ts": 0, "bars_held": 0, "risk0": 5.0,
               "setup": "RADAR_BRACKET"}
         p5 = dict(bp)
-        assert _walk_bars(p5, [(1, 106, 99, 105)]) is None      # +1R 도달
+        assert _walk_bars(p5, [(1, 106, 99, 105)]) is None      # +1.2R: 미발동
+        assert not p5.get("be_armed")
+        assert _walk_bars(p5, [(2, 107, 99, 105)]) is None      # +1.3R 도달
         assert p5["be_armed"] and p5["stop"] == 100.0 and p5["_be_new"]
-        assert _walk_bars(p5, [(2, 103, 99.5, 100.5)])[1] == "BE"  # 본절 청산
+        assert _walk_bars(p5, [(3, 103, 99.5, 100.5)])[1] == "BE"  # 본절 청산
         p6 = dict(bp)
         assert _walk_bars(p6, [(1, 106, 94, 96)])[1] == "STOP"  # 동시봉=손절우선
         p7 = dict(bp); p7.pop("setup")                          # OBV: 미적용
