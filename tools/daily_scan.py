@@ -303,6 +303,9 @@ def enter_positions(led: dict, cands, t0: str) -> list[str]:
         dist = abs(entry - stop)
         if dist <= 0:
             continue
+        if abs(target - entry) < dist:      # R:R<1 = 뭉개진 플랜(ZIL 사고) 거부
+            msgs.append(f"⛔ {sym} 플랜 무결성 실패(R:R<1) — 진입 거부")
+            continue
         qty = (led["equity"] * RISK_PER_TRADE) / dist
         qty = min(qty, led["equity"] * MAX_LEVERAGE / entry)   # 레버리지 상한
         notional = qty * entry

@@ -22,9 +22,12 @@ class TradePlan:
     notes: list[str] = field(default_factory=list)
 
     def as_dict(self):
-        return {"direction": self.direction, "entry": round(self.entry, 4),
-                "stop": round(self.stop, 4), "target": round(self.target, 4),
-                "invalidation": round(self.invalidation, 4), "rr": round(self.rr, 2),
+        # 가격은 반올림하지 않는다 — 고정 4자리 반올림이 초저가 코인(예: ZIL
+        # 0.0025)의 손절·목표를 뭉갠 사고(2026-08-04). 틱 반올림은 주문 시
+        # binance_live.filters()가 담당.
+        return {"direction": self.direction, "entry": self.entry,
+                "stop": self.stop, "target": self.target,
+                "invalidation": self.invalidation, "rr": round(self.rr, 2),
                 "timeframe": self.timeframe, "confidence": self.confidence,
                 "notes": self.notes}
 
