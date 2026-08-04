@@ -40,7 +40,7 @@ def snapshot() -> dict:
         "ichi": _log_count("일목4h"),
         "fill": _log_count("실주문 체결"),
         "be": _log_count("본절 이동"),
-        "rv": sum(1 for t in d["closed"] if t.get("review")),
+        "rv": {i for i, t in enumerate(d["closed"]) if t.get("review")},
         "closed": len(d["closed"]),
         "open": len(d["open"]),
     }
@@ -59,10 +59,10 @@ def main() -> int:
                     last = ln
             print(" ", last.strip())
             return 0
-        if cur["rv"] != base["rv"]:
+        if cur["rv"] - base["rv"]:
             print("REVIEW: 신규 복기 판정")
-            revs = [t for t in d["closed"] if t.get("review")]
-            for t in revs[base["rv"]:]:
+            for i in sorted(cur["rv"] - base["rv"]):
+                t = d["closed"][i]
                 print(f"  {t['symbol']} [{t['reason']}] ${t['pnl']:+.2f} → {t['review']}")
             return 0
         if cur["fill"] != base["fill"]:
