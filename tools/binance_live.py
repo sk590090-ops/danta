@@ -73,11 +73,23 @@ def _sign(secret: str, qs: str) -> str:
     return hmac.new(secret.encode(), qs.encode(), hashlib.sha256).hexdigest()
 
 
+_TIME_OFFSET_MS = 0          # 서버시간 - 로컬시간 (PC 시계 드리프트 보정)
+
+
+def _sync_time(timeout: float = 10.0) -> None:
+    global _TIME_OFFSET_MS
+    try:
+        srv = _public("/fapi/v1/time", timeout=timeout)["serverTime"]
+        _TIME_OFFSET_MS = srv - int(time.time() * 1000)
+    except Exception:
+        pass                                   # 보정 실패 시 기존 오프셋 유지
+
+
 def _signed(method: str, path: str, params: dict | None = None,
-            timeout: float = 10.0) -> dict | list:
+            timeout: float = 10.0, _retry: bool = True) -> dict | list:
     key, secret = _keys()
     p = dict(params or {})
-    p["timestamp"] = int(time.time() * 1000)
+    p["timestamp"] = int(time.time() * 1000) + _TIME_OFFSET_MS
     p["recvWindow"] = 5000
     qs = urllib.parse.urlencode(p)
     qs += "&signature=" + _sign(secret, qs)
@@ -90,6 +102,9 @@ def _signed(method: str, path: str, params: dict | None = None,
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")
+        if '"code":-1021' in body and _retry:  # 시계 드리프트 → 재동기 후 1회 재시도
+            _sync_time(timeout)
+            return _signed(method, path, params, timeout, _retry=False)
         if '"code":-4411' in body:
             raise RuntimeError(
                 "TradFi 퍼프(금·주식토큰) 약관 미서명 — 바이낸스 선물 화면에서 "
