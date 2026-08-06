@@ -244,7 +244,7 @@ def settle_positions(led: dict, timeout: float) -> list[str]:
         hit = _walk_bars(pos, bars)
         if hit is None:
             if pos.pop("_be_new", False):      # +1R 도달 → 본절 이동됨
-                msgs.append(f"🛡️ 본절 이동 {pos['symbol']} — +1R 도달, "
+                msgs.append(f"🛡️ 본절 이동 {pos['symbol']} — +{BE_TRIGGER_R}R 도달, "
                             f"손절을 진입가({pos['entry']:g})로 상향")
                 lm = _live("update_stops", pos["symbol"], pos["direction"],
                            pos["stop"], pos["target"])

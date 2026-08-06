@@ -1,0 +1,364 @@
+{
+  "folds": [
+    {
+      "fold": 1,
+      "chosen": {
+        "planner.rr_target": 2.5,
+        "planner.atr_stop_mult": 1.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": -0.033,
+      "wfa": {
+        "n_trades": 13,
+        "avg_R": 0.061,
+        "win_rate": 0.385,
+        "profit_factor": 1.12,
+        "total_pnl": 79.65,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 13,
+            "wins": 5,
+            "pnl": 79.65,
+            "win_rate": 0.385,
+            "avg_R": 0.061
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 14,
+        "avg_R": 0.31,
+        "win_rate": 0.5,
+        "profit_factor": 1.78,
+        "total_pnl": 434.39,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 14,
+            "wins": 7,
+            "pnl": 434.39,
+            "win_rate": 0.5,
+            "avg_R": 0.31
+          }
+        }
+      }
+    },
+    {
+      "fold": 2,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 1.5,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.076,
+      "wfa": {
+        "n_trades": 19,
+        "avg_R": 0.058,
+        "win_rate": 0.421,
+        "profit_factor": 1.11,
+        "total_pnl": 110.7,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 19,
+            "wins": 8,
+            "pnl": 110.7,
+            "win_rate": 0.421,
+            "avg_R": 0.058
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 21,
+        "avg_R": -0.009,
+        "win_rate": 0.381,
+        "profit_factor": 0.98,
+        "total_pnl": -18.24,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 21,
+            "wins": 8,
+            "pnl": -18.24,
+            "win_rate": 0.381,
+            "avg_R": -0.009
+          }
+        }
+      }
+    },
+    {
+      "fold": 3,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 2.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.247,
+      "wfa": {
+        "n_trades": 21,
+        "avg_R": 0.22,
+        "win_rate": 0.476,
+        "profit_factor": 1.51,
+        "total_pnl": 461.29,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 21,
+            "wins": 10,
+            "pnl": 461.29,
+            "win_rate": 0.476,
+            "avg_R": 0.22
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 22,
+        "avg_R": 0.208,
+        "win_rate": 0.5,
+        "profit_factor": 1.52,
+        "total_pnl": 457.93,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 22,
+            "wins": 11,
+            "pnl": 457.93,
+            "win_rate": 0.5,
+            "avg_R": 0.208
+          }
+        }
+      }
+    },
+    {
+      "fold": 4,
+      "chosen": {
+        "planner.rr_target": 3.0,
+        "planner.atr_stop_mult": 2.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.518,
+      "wfa": {
+        "n_trades": 21,
+        "avg_R": 0.103,
+        "win_rate": 0.333,
+        "profit_factor": 1.21,
+        "total_pnl": 215.4,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 21,
+            "wins": 7,
+            "pnl": 215.4,
+            "win_rate": 0.333,
+            "avg_R": 0.103
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 22,
+        "avg_R": 0.135,
+        "win_rate": 0.409,
+        "profit_factor": 1.36,
+        "total_pnl": 295.93,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 22,
+            "wins": 9,
+            "pnl": 295.93,
+            "win_rate": 0.409,
+            "avg_R": 0.135
+          }
+        }
+      }
+    },
+    {
+      "fold": 5,
+      "chosen": {
+        "planner.rr_target": 3.0,
+        "planner.atr_stop_mult": 0.75,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.257,
+      "wfa": {
+        "n_trades": 16,
+        "avg_R": 0.16,
+        "win_rate": 0.625,
+        "profit_factor": 1.61,
+        "total_pnl": 256.56,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 16,
+            "wins": 10,
+            "pnl": 256.56,
+            "win_rate": 0.625,
+            "avg_R": 0.16
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 17,
+        "avg_R": 0.122,
+        "win_rate": 0.588,
+        "profit_factor": 1.46,
+        "total_pnl": 207.43,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 17,
+            "wins": 10,
+            "pnl": 207.43,
+            "win_rate": 0.588,
+            "avg_R": 0.122
+          }
+        }
+      }
+    },
+    {
+      "fold": 6,
+      "chosen": {
+        "planner.rr_target": 2.0,
+        "planner.atr_stop_mult": 2.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.448,
+      "wfa": {
+        "n_trades": 22,
+        "avg_R": 0.086,
+        "win_rate": 0.455,
+        "profit_factor": 1.17,
+        "total_pnl": 190.26,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 22,
+            "wins": 10,
+            "pnl": 190.26,
+            "win_rate": 0.455,
+            "avg_R": 0.086
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 25,
+        "avg_R": 0.109,
+        "win_rate": 0.48,
+        "profit_factor": 1.27,
+        "total_pnl": 272.08,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 25,
+            "wins": 12,
+            "pnl": 272.08,
+            "win_rate": 0.48,
+            "avg_R": 0.109
+          }
+        }
+      }
+    },
+    {
+      "fold": 7,
+      "chosen": {
+        "planner.rr_target": 3.0,
+        "planner.atr_stop_mult": 0.75,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.234,
+      "wfa": {
+        "n_trades": 28,
+        "avg_R": -0.152,
+        "win_rate": 0.25,
+        "profit_factor": 0.7,
+        "total_pnl": -426.07,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 28,
+            "wins": 7,
+            "pnl": -426.07,
+            "win_rate": 0.25,
+            "avg_R": -0.152
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 26,
+        "avg_R": -0.015,
+        "win_rate": 0.385,
+        "profit_factor": 0.97,
+        "total_pnl": -37.88,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 26,
+            "wins": 10,
+            "pnl": -37.88,
+            "win_rate": 0.385,
+            "avg_R": -0.015
+          }
+        }
+      }
+    },
+    {
+      "fold": 8,
+      "chosen": {
+        "planner.rr_target": 1.5,
+        "planner.atr_stop_mult": 2.0,
+        "signal.min_score_approve": 60
+      },
+      "is_avgR": 0.042,
+      "wfa": {
+        "n_trades": 18,
+        "avg_R": -0.178,
+        "win_rate": 0.333,
+        "profit_factor": 0.67,
+        "total_pnl": -320.31,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 18,
+            "wins": 6,
+            "pnl": -320.31,
+            "win_rate": 0.333,
+            "avg_R": -0.178
+          }
+        }
+      },
+      "fix": {
+        "n_trades": 22,
+        "avg_R": -0.075,
+        "win_rate": 0.318,
+        "profit_factor": 0.8,
+        "total_pnl": -164.82,
+        "by_setup": {
+          "OBV_DIV": {
+            "n": 22,
+            "wins": 7,
+            "pnl": -164.82,
+            "win_rate": 0.318,
+            "avg_R": -0.075
+          }
+        }
+      }
+    }
+  ],
+  "wfa": {
+    "n_trades": 158,
+    "avg_R": 0.036,
+    "win_rate": 0.399,
+    "profit_factor": 1.08,
+    "total_pnl": 567.48,
+    "by_setup": {
+      "OBV_DIV": {
+        "n": 158,
+        "wins": 63,
+        "pnl": 567.48,
+        "win_rate": 0.399,
+        "avg_R": 0.036
+      }
+    }
+  },
+  "fixed": {
+    "n_trades": 169,
+    "avg_R": 0.086,
+    "win_rate": 0.438,
+    "profit_factor": 1.21,
+    "total_pnl": 1446.82,
+    "by_setup": {
+      "OBV_DIV": {
+        "n": 169,
+        "wins": 74,
+        "pnl": 1446.82,
+        "win_rate": 0.438,
+        "avg_R": 0.086
+      }
+    }
+  }
+}
