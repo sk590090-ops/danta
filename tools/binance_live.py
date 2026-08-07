@@ -231,19 +231,22 @@ def open_trade(symbol: str, direction: str, qty: float,
         timeout=timeout)
     # 손절/익절은 거래소가 집행 (봇 다운 대비). 2026 API: 조건부 주문은
     # Algo Order 엔드포인트(algoType=CONDITIONAL, triggerPrice) 사용 (-4120 대응).
+    # 같은 계정을 나씨 봇과 공유하므로(2026-08-08) closePosition 금지 —
+    # 수량 지정 reduceOnly로 '우리 몫'만 청산되게 한다.
     sl = _signed("POST", "/fapi/v1/algoOrder", {
         "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
         "type": "STOP_MARKET",
         "triggerPrice": _round_step(stop, f["tickSize"]),
-        "closePosition": "true", "workingType": "MARK_PRICE"}, timeout=timeout)
+        "quantity": q, "reduceOnly": "true",
+        "workingType": "MARK_PRICE"}, timeout=timeout)
     tp = None
     if target is not None:              # 지표 청산형(일목)은 TP 없이 SL만
         tp = _signed("POST", "/fapi/v1/algoOrder", {
             "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
             "type": "TAKE_PROFIT_MARKET",
             "triggerPrice": _round_step(target, f["tickSize"]),
-            "closePosition": "true", "workingType": "CONTRACT_PRICE"},
-            timeout=timeout)
+            "quantity": q, "reduceOnly": "true",
+            "workingType": "CONTRACT_PRICE"}, timeout=timeout)
     return {"env": env_label(), "symbol": symbol, "qty": q,
             "notional": round(notional, 2),
             "entry_id": entry.get("orderId"),
@@ -251,72 +254,114 @@ def open_trade(symbol: str, direction: str, qty: float,
             "tp_id": (tp.get("algoId") or tp.get("orderId")) if tp else None}
 
 
-def update_stops(symbol: str, direction: str, stop: float, target: float,
-                 timeout: float = 10.0) -> dict:
-    """거래소측 SL/TP 재설치 (본절 이동 등). 기존 algo 주문 취소 후 재설치."""
-    f = filters(symbol, timeout)               # 미가용 심볼이면 여기서 예외
-    opp = "SELL" if direction == "LONG" else "BUY"
+def _cancel_our_algo(symbol: str, live: dict | None, timeout: float) -> str:
+    """우리 algo 주문만 취소. ID가 있으면 ID로, 없으면(구버전 포지션)
+    '단독 보유'일 때만 심볼 전체 취소 — 나씨 봇과 계정 공유 대응."""
+    ids = [live.get(k) for k in ("sl_id", "tp_id")] if live else []
+    ids = [i for i in ids if i]
+    if ids:
+        done = 0
+        for aid in ids:
+            for key in ("algoId", "orderId"):
+                try:
+                    _signed("DELETE", "/fapi/v1/algoOrder",
+                            {"symbol": symbol, key: aid}, timeout=timeout)
+                    done += 1
+                    break
+                except RuntimeError:
+                    continue
+        if done:
+            return f"ID취소 {done}/{len(ids)}"
+        # ID 취소 전멸 → 아래 단독보유 판정으로 폴백
+    pos = positions(symbol, timeout)
+    amt = abs(pos[0]["amt"]) if pos else 0.0
+    our = float(live.get("qty", 0)) if live else 0.0
+    if our and amt > our * 1.01:
+        return "공유심볼 — 전체취소 스킵(타봇 보호)"
     for path in ("/fapi/v1/algoOpenOrders", "/fapi/v1/allAlgoOpenOrders"):
         try:
             _signed("DELETE", path, {"symbol": symbol}, timeout=timeout)
-            break
+            return "심볼 전체취소(단독 보유)"
         except RuntimeError:
             continue
+    return "취소 실패"
+
+
+def update_stops(symbol: str, direction: str, stop: float, target: float,
+                 live: dict | None = None, timeout: float = 10.0) -> dict:
+    """거래소측 SL/TP 재설치 (본절 이동 등). 우리 주문만 취소 후 재설치."""
+    f = filters(symbol, timeout)               # 미가용 심볼이면 여기서 예외
+    opp = "SELL" if direction == "LONG" else "BUY"
+    cancel_note = _cancel_our_algo(symbol, live, timeout)
+    q = _round_step(float(live["qty"]), f["stepSize"]) if live and live.get("qty") else None
+    base = {"algoType": "CONDITIONAL", "symbol": symbol, "side": opp}
+    scope = ({"quantity": q, "reduceOnly": "true"} if q
+             else {"closePosition": "true"})
     sl = _signed("POST", "/fapi/v1/algoOrder", {
-        "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
-        "type": "STOP_MARKET",
+        **base, "type": "STOP_MARKET",
         "triggerPrice": _round_step(stop, f["tickSize"]),
-        "closePosition": "true", "workingType": "MARK_PRICE"}, timeout=timeout)
-    tp = _signed("POST", "/fapi/v1/algoOrder", {
-        "algoType": "CONDITIONAL", "symbol": symbol, "side": opp,
-        "type": "TAKE_PROFIT_MARKET",
-        "triggerPrice": _round_step(target, f["tickSize"]),
-        "closePosition": "true", "workingType": "CONTRACT_PRICE"},
-        timeout=timeout)
+        **scope, "workingType": "MARK_PRICE"}, timeout=timeout)
+    tp = None
+    if target is not None:
+        tp = _signed("POST", "/fapi/v1/algoOrder", {
+            **base, "type": "TAKE_PROFIT_MARKET",
+            "triggerPrice": _round_step(target, f["tickSize"]),
+            **scope, "workingType": "CONTRACT_PRICE"}, timeout=timeout)
     return {"env": env_label(), "symbol": symbol, "stop": stop,
-            "sl_id": sl.get("algoId"), "tp_id": tp.get("algoId")}
+            "cancel": cancel_note,
+            "sl_id": sl.get("algoId") or sl.get("orderId"),
+            "tp_id": (tp.get("algoId") or tp.get("orderId")) if tp else None}
 
 
-def close_trade(symbol: str, timeout: float = 10.0) -> dict:
-    """미체결 주문 전부 취소 + 남은 포지션 시장가 청산(reduceOnly)."""
+def close_trade(symbol: str, live: dict | None = None,
+                timeout: float = 10.0) -> dict:
+    """우리 주문 취소 + '우리 수량'만 시장가 청산(reduceOnly).
+
+    나씨 봇과 계정 공유(2026-08-08): live={"qty","sl_id","tp_id"}가 있으면
+    그 수량·주문만 건드린다. 없으면(구버전) 단독 보유일 때만 전체 정리."""
     out: dict = {"env": env_label(), "symbol": symbol}
     try:                      # 진입이 스킵된 심볼이면 청산도 할 게 없다
-        filters(symbol, timeout)
+        f = filters(symbol, timeout)
     except RuntimeError as e:
         out["note"] = f"거래 대상 아님 — 청산 스킵 ({e})"
         return out
-    try:
-        _signed("DELETE", "/fapi/v1/allOpenOrders", {"symbol": symbol},
-                timeout=timeout)
-        out["orders_cancelled"] = True
-    except RuntimeError as e:
-        out["orders_cancelled"] = f"실패: {e}"
-    # 조건부(algo) 주문도 취소 — 엔드포인트 후보 순차 시도 (첫 성공에서 중단)
-    for path in ("/fapi/v1/algoOpenOrders", "/fapi/v1/allAlgoOpenOrders"):
+    our_qty = float(live["qty"]) if live and live.get("qty") else None
+    out["algo_cancelled"] = _cancel_our_algo(symbol, live, timeout)
+    pos0 = positions(symbol, timeout)
+    amt0 = abs(pos0[0]["amt"]) if pos0 else 0.0
+    sole = our_qty is None or amt0 <= (our_qty or 0) * 1.01
+    if sole:                  # 일반 지정가 등 잔여 주문은 단독 보유일 때만 일괄 취소
         try:
-            _signed("DELETE", path, {"symbol": symbol}, timeout=timeout)
-            out["algo_cancelled"] = path
-            break
+            _signed("DELETE", "/fapi/v1/allOpenOrders", {"symbol": symbol},
+                    timeout=timeout)
+            out["orders_cancelled"] = True
         except RuntimeError as e:
-            out["algo_cancelled"] = f"실패: {str(e)[:120]}"
+            out["orders_cancelled"] = f"실패: {e}"
     # 청산 후 검증+재시도: 거래소측 TP/SL 부분체결과 시장가 청산이 겹치면
     # 먼지 잔여가 남을 수 있다 (2026-07-30 PAXG 0.001 잔존 실측). 최대 2회.
     closed_total = 0.0
+    remain = our_qty          # None = 전량(구버전 단독 보유)
     for attempt in range(2):
         pos = positions(symbol, timeout)
         if not pos:
             break
         amt = pos[0]["amt"]
         side = "SELL" if amt > 0 else "BUY"
-        f = filters(symbol, timeout)
-        q = _round_step(abs(amt), f["stepSize"])
+        cap = abs(amt) if remain is None else min(abs(amt), max(0.0, remain))
+        q = _round_step(cap, f["stepSize"])
         if float(q) <= 0:
-            out["dust"] = abs(amt)             # 스텝 미만 먼지 — 청산 불가 고지
+            if remain is None or remain > 0:
+                out["dust"] = cap              # 스텝 미만 먼지 — 청산 불가 고지
             break
         r = _signed("POST", "/fapi/v1/order", {
             "symbol": symbol, "side": side, "type": "MARKET",
             "quantity": q, "reduceOnly": "true"}, timeout=timeout)
-        closed_total += abs(amt)
+        closed_total += float(q)
+        if remain is not None:
+            remain -= float(q)
+            if remain <= 0:
+                out["order_id"] = r.get("orderId")
+                break
         out["order_id"] = r.get("orderId")
         time.sleep(1.0)                        # 체결 반영 대기 후 재검증
     if closed_total:
@@ -324,8 +369,11 @@ def close_trade(symbol: str, timeout: float = 10.0) -> dict:
     elif "dust" not in out:
         out["note"] = "잔여 포지션 없음"
     leftover = positions(symbol, timeout)
-    if leftover:
+    left_amt = abs(leftover[0]["amt"]) if leftover else 0.0
+    if leftover and (our_qty is None or left_amt > 0.01 * (our_qty or 1)) and sole:
         out["warning"] = f"잔여 미정리 {leftover[0]['amt']} — 수동 확인 필요"
+    elif leftover and not sole:
+        out["shared_note"] = f"잔여 {leftover[0]['amt']}는 타봇 몫 — 보존"
     return out
 
 

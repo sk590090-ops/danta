@@ -139,21 +139,31 @@ LEDGER = Path(__file__).resolve().parent.parent / "futures_paper.json"
 LIVE_EXEC = False
 
 
-def _live(fn: str, *a) -> str | None:
+def _live(fn: str, *a, pos: dict | None = None) -> str | None:
     """실주문 호출 래퍼 — 실패해도 페이퍼 원장은 계속(진실은 원장이 기록),
-    실패 사실은 메시지로 정직하게 노출."""
+    실패 사실은 메시지로 정직하게 노출.
+
+    pos를 주면 거래소 주문 ID·실체결 수량을 pos["live"]에 기록/갱신한다 —
+    나씨 봇과 계정을 공유하므로(2026-08-08) 취소·청산은 이 ID·수량 범위로
+    제한된다."""
     if not LIVE_EXEC:
         return None
     try:
         import binance_live
         r = getattr(binance_live, fn)(*a)
         if fn == "open_trade":
+            if pos is not None:
+                pos["live"] = {"qty": float(r["qty"]),
+                               "sl_id": r.get("sl_id"), "tp_id": r.get("tp_id")}
             return (f"{r['env']} 실주문 체결 {r['symbol']} {r['qty']}개 "
                     f"(${r['notional']:,.0f}) + 거래소측 SL/TP 설치")
         if fn == "update_stops":
+            if pos is not None and pos.get("live"):
+                pos["live"].update(sl_id=r.get("sl_id"), tp_id=r.get("tp_id"))
             return f"{r['env']} 거래소 손절 재설치 {r['symbol']} → {r['stop']:g}"
         return f"{r['env']} 실주문 정리 {r['symbol']} " + \
-            (f"{r.get('closed_qty')}개 청산" if "closed_qty" in r else "잔여 없음")
+            (f"{r.get('closed_qty')}개 청산" if "closed_qty" in r
+             else r.get("shared_note") or "잔여 없음")
     except Exception as e:
         return f"⚠️ 실주문 실패({fn}): {e}"
 START_EQUITY = 500.0          # 할당 자본
@@ -247,7 +257,7 @@ def settle_positions(led: dict, timeout: float) -> list[str]:
                 msgs.append(f"🛡️ 본절 이동 {pos['symbol']} — +{BE_TRIGGER_R}R 도달, "
                             f"손절을 진입가({pos['entry']:g})로 상향")
                 lm = _live("update_stops", pos["symbol"], pos["direction"],
-                           pos["stop"], pos["target"])
+                           pos["stop"], pos["target"], pos.get("live"), pos=pos)
                 if lm:
                     msgs.append("  " + lm)
             still.append(pos)
@@ -268,8 +278,9 @@ def settle_positions(led: dict, timeout: float) -> list[str]:
                     f"[{reason}] {held}봉 · net ${pnl:+.2f} ({pos['r']:+.2f}R) "
                     f"→ 자본 ${led['equity']:.2f}")
         # 실주문 동기화: SL/TP는 거래소가 이미 집행했을 수 있음 —
-        # 잔여 주문 취소 + 남은 포지션 정리(멱등).
-        lm = _live("close_trade", pos["symbol"])
+        # 우리 주문·수량 범위만 취소·정리(멱등, 계정 공유 대응).
+        lm = _live("close_trade", pos["symbol"],
+                   pos.get("live") or {"qty": pos["qty"]})
         if lm:
             msgs.append("  " + lm)
     led["open"] = still
@@ -311,16 +322,18 @@ def enter_positions(led: dict, cands, t0: str) -> list[str]:
         notional = qty * entry
         if notional < 5:                                        # 거래소 최소주문
             continue
-        led["open"].append({
+        newpos = {
             "symbol": sym, "direction": info["signal"], "entry": entry,
             "stop": stop, "target": target, "qty": qty, "risk0": dist,
-            "entry_ts": int(time.time() * 1000), "opened": t0, "bars_held": 0})
+            "entry_ts": int(time.time() * 1000), "opened": t0, "bars_held": 0}
+        led["open"].append(newpos)
         open_syms.add(sym)
         msgs.append(f"🎯 진입 {sym} {info['signal']} ${notional:,.0f} "
                     f"(레버 {notional/led['equity']:.2f}x, Z{info['z']:.1f}) · "
                     f"진입 {entry} 손절 {stop} 목표 {target} "
                     f"(리스크 ${led['equity']*RISK_PER_TRADE:.1f})")
-        lm = _live("open_trade", sym, info["signal"], qty, stop, target)
+        lm = _live("open_trade", sym, info["signal"], qty, stop, target,
+                   pos=newpos)
         if lm:
             msgs.append("  " + lm)
     return msgs
@@ -975,18 +988,19 @@ def check_brackets(led: dict, timeout: float) -> list[str]:
             continue
         sgn = 1 if direction == "LONG" else -1
         tgt = entry + sgn * BRACKET_TARGET_R * atr
-        led["open"].append({
+        newpos = {
             "symbol": b["symbol"], "direction": direction, "entry": entry,
             "stop": entry - sgn * atr, "target": tgt,
             "qty": qty, "risk0": atr, "entry_ts": bar_ts,
             "setup": "RADAR_BRACKET",
-            "opened": time.strftime("%Y-%m-%d %H:%M"), "bars_held": 0})
+            "opened": time.strftime("%Y-%m-%d %H:%M"), "bars_held": 0}
+        led["open"].append(newpos)
         msgs.append(f"🎯 진입 {b['symbol']} {direction} [브래킷] "
                     f"${qty*entry:,.0f} (레버 {qty*entry/led['equity']:.2f}x) · "
                     f"진입 {entry:g} 손절 {entry - sgn*atr:g} "
                     f"목표 {tgt:g}")
         lm = _live("open_trade", b["symbol"], direction, qty,
-                   entry - sgn * atr, tgt)
+                   entry - sgn * atr, tgt, pos=newpos)
         if lm:
             msgs.append("  " + lm)
     led["brackets"] = keep
@@ -1052,7 +1066,8 @@ def ichimoku_cycle(led: dict, timeout: float) -> list[str]:
             msgs.append(f"{emo} 청산 {pos['symbol']} LONG [일목지표] "
                         f"net ${pnl:+.2f} ({pos['r']:+.2f}R) "
                         f"→ 자본 ${led['equity']:.2f}")
-            lm = _live("close_trade", pos["symbol"])
+            lm = _live("close_trade", pos["symbol"],
+                       pos.get("live") or {"qty": pos["qty"]})
             if lm:
                 msgs.append("  " + lm)
 
@@ -1102,17 +1117,18 @@ def ichimoku_cycle(led: dict, timeout: float) -> list[str]:
         qty = min(qty, led["equity"] * MAX_LEVERAGE / entry)
         if qty * entry < 5:
             continue
-        led["open"].append({
+        newpos = {
             "symbol": sym, "direction": "LONG", "entry": entry, "stop": stop,
             "target": None, "qty": qty, "risk0": ICHI_STOP_ATR * atr,
             "entry_ts": int(time.time() * 1000), "setup": "ICHIMOKU_4H",
             "hold_max": ICHI_HOLD_1H,
-            "opened": time.strftime("%Y-%m-%d %H:%M"), "bars_held": 0})
+            "opened": time.strftime("%Y-%m-%d %H:%M"), "bars_held": 0}
+        led["open"].append(newpos)
         open_syms.add(sym)
         msgs.append(f"🎯 진입 {sym} LONG [일목4h] ${qty*entry:,.0f} "
                     f"(레버 {qty*entry/led['equity']:.2f}x) · 진입 {entry:g} "
                     f"손절 {stop:g} · 청산=지표(기준선/구름)+2ATR")
-        lm = _live("open_trade", sym, "LONG", qty, stop, None)
+        lm = _live("open_trade", sym, "LONG", qty, stop, None, pos=newpos)
         if lm:
             msgs.append("  " + lm)
     return msgs
